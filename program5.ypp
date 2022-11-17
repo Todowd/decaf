@@ -231,7 +231,7 @@ constructdecs: constructdecs constructdec {
 ;
 
 constructdec: id genfuncdec {
-		$$=new Node($1, $2->getleft(), $2->getRight());
+		$$=new Node($1, $2->getLeft(), $2->getRight());
 		delete $2;
 		string str="<constructorDeclaration> -> ID LPAREN <paramList> RPAREN";
 		str+=" <block>";
@@ -268,9 +268,9 @@ methoddec: gendec genfuncdec {//id LPAREN paramlist block {
         $$=$1;
         Node* left($1->getLeft());
         string str="<resultType> -> <type>";
-        resultType->set(str);
+        left->set(str);
         Node* mid=$$->getRight();
-        Node* right=$2->getleft();
+        Node* right=$2->getLeft();
         Node* last=$2->getRight();
         $$->setLeft(left);
         $$->setMid(mid);
@@ -282,7 +282,7 @@ methoddec: gendec genfuncdec {//id LPAREN paramlist block {
         $$=errorCheck($$);
     }
     | VOID id LPAREN paramlist {
-        Node* left();
+        Node* left=new Node();
         string str="<resultType> -> VOID";
         left->set(str);
         $$=new Node(left, $4, $2);
