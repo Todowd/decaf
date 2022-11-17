@@ -211,7 +211,7 @@ vardecs: vardecs vardec {
 		$$=$1;
 	}
 ;
-vardec: type id SEMI {
+vardec: gendec SEMI {
 		$$=new Node($1, $2);
 		$$->set("<varDeclaration> -> <type> ID SEMI");
 		$$=errorCheck($$);
@@ -229,8 +229,10 @@ constructdecs: constructdecs constructdec {
 		$$=$1;
 	}
 ;
-constructdec: id LPAREN paramlist block {
-		$$=new Node($1, $4, $3);
+LPAREN paramlist block
+constructdec: id genfuncdec {
+		$$=new Node($1, $2->getleft(), $2->getRight());
+		delete $2;
 		string str="<constructorDeclaration> -> ID LPAREN <paramList> RPAREN";
 		str+=" <block>";
 		$$->set(str);
@@ -254,20 +256,41 @@ methoddecs: methoddecs methoddec {
 	}
 ;
 
-methoddec: resulttype constructdec {//id LPAREN paramlist block {
-		$$=$2;
-		Node* left=$$->getLeft();
-		Node* mid=$$->getMid();
-		Node* right=$$->getRight();
-		$$->setLeft($1);
-		$$->setMid(left);
-		$$->setRight(mid);
-		$$->setLast(right);
-		string str="<methodDeclaration> -> <resultType> ID LPAREN <paramList>";
-		str+=" RPAREN <block>";
-		$$->set(str);
-		$$=errorCheck($$);
-}
+genfuncdec: LPAREN paramlist block {
+    $$=new Node($2, $3);
+};
+
+gendec: type id {
+    $$=new Node($1, $2);
+};
+
+methoddec: gendec genfuncdec {//id LPAREN paramlist block {
+        $$=$1;
+        Node* left($1->getLeft());
+        string str="<resultType> -> <type>";
+        resultType->set(str);
+        Node* mid=$$->getRight();
+        Node* right=$2->getleft();
+        Node* last=$2->getRight();
+        $$->setLeft(left);
+        $$->setMid(mid);
+        $$->setRight(right);
+        $$->setLast(last);
+        str="<methodDeclaration> -> <resultType> ID LPAREN <paramList>";
+        str+=" RPAREN <block>";
+        $$->set(str);
+        $$=errorCheck($$);
+    }
+    | VOID id LPAREN paramlist {
+        Node* left($1->getLeft());
+        string str="<resultType> -> <type>";
+        resultType->set(str);
+        left->setLeft(new Node(new Node()));
+        str="<type> -> VOID";
+        left->getLeft()->set(str);
+        $$=new Node(left, $4, $2);
+        $$=errorCheck($$);
+    }
 	/* VOID id LPAREN paramlist block {
 		Node* tmp=new Node(new Node(new Node()));
 		tmp->set("<resultType> -> <type>");
