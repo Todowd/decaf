@@ -229,7 +229,7 @@ constructdecs: constructdecs constructdec {
 		$$=$1;
 	}
 ;
-a
+
 constructdec: id genfuncdec {
 		$$=new Node($1, $2->getleft(), $2->getRight());
 		delete $2;
