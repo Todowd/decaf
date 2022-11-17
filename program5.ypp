@@ -1,0 +1,1025 @@
+/*
+program5.ypp
+COSC4785
+Tyler O'Dowd
+10/24/22
+
+This is the input into the bison scanner to build a grammer tree from input
+*/
+
+%{
+#include<FlexLexer.h>
+#include<iostream>
+using std::cerr;
+using std::cout;
+using std::endl;
+
+#include "nodes.hpp"
+#include "program5.hpp"
+
+extern Node* tree;
+extern yyFlexLexer scanner;
+extern int line;
+#define yylex() scanner.yylex()
+
+extern int col;
+extern string err;
+string errType;
+
+void yyerror(const char*);
+
+void printError(string msg) {
+	cerr<<line<<": "<</*errorLine<<*/"\n"<<msg<<endl;
+}
+
+//returns the child error node, or self
+Node* errorCheck(Node* n) {
+	Node* r;
+	if((r=n->getLeft())&&(r->isErr())) {
+		delete n;
+		return r;
+	}
+	if((r=n->getRight())&&(r->isErr())) {
+		delete n;
+		return r;
+	}
+	if((r=n->getMid())&&(r->isErr())) {
+		delete n;
+		return r;
+	}
+	if((r=n->getLast())&&(r->isErr())) {
+		delete n;
+		return r;
+	}
+	if((r=n->getNext())&&(r->isErr())) {
+		delete n;
+		return r;
+	}
+	return n;
+}
+
+%}
+
+%union {
+  Node* ttype;
+}
+%define parse.error verbose
+%type<ttype> exp program vardec name simpletype type arglst cndtlstmt arglst2
+%type<ttype> newexp id classdec vardecs prodop sumop relop unaryop optlexp
+%type<ttype> constructdecs methoddecs constructdec methoddec classbody
+%type<ttype> resulttype paramlist param block paramlist2 localvardecs
+%type<ttype> stmts localvardec stmt bracketexps bracketexp multibracket
+%type<ttype> multibrackets classstart
+%token<ttype> INT IDENT
+%token RPAREN LPAREN LBRACK RBRACK LBRACE RBRACE
+%token NEQ EQ LEQ GEQ LT GT AND OR
+%token PLUS MINUS TIMES DIV MOD NOT
+%token ASSIGN
+%token SEMI COMMA COMMENT DOT POS
+%token VOID NUL INTTYPE
+%token CLASS NEW THIS
+%token PRINT READ RETURN
+%token WHILE IF ELSE
+%token ER_CH ER_WD
+%token NEWLINE
+
+%%
+
+
+program: classdec {
+		tree=new Node($1);
+		tree->set("<program> -> <classDeclaration>");
+		$$=errorCheck($$);
+	}
+	| program classdec {
+		$1->setNext(new Node($2));
+		$1->getNext()->set("<program> -> <program> <classDec>");
+		$$=errorCheck($$);
+	}
+	| error {
+		if(tree==nullptr) {
+			tree=new NodeERROR();
+		}
+		$$=new NodeERROR();
+	}
+;
+
+classdec: classstart classbody {
+		$$=$1;
+		$1->setRight($2);
+		$$=errorCheck($$);
+	}
+;
+
+classstart: CLASS id LBRACE {
+		$$=new Node($2);
+		$$->set("<classDeclaration> -> CLASS ID <classBody>");
+		$$=errorCheck($$);
+	}
+	| error id LBRACE {
+		printError("Expected \'class\'");
+		$$=new NodeERROR();
+	}
+	| CLASS id error {
+		printError("Expected \'{\'");
+		$$=new NodeERROR();
+	}
+;
+
+classbody: RBRACE {
+		$$=new Node();
+		$$->set("<classBody> -> LBRACE RBRACE");
+		$$=errorCheck($$);
+	}
+	| vardecs constructdecs methoddecs RBRACE {
+		$$=new Node($1, $3, $2);
+		string str="<classBody> -> LBRACE <varDeclaration> ";
+		str+="<constructorDeclaration> <MethodDeclaration> RBRACE";
+		$$->set(str);
+		$$=errorCheck($$);
+	}
+	| constructdecs methoddecs RBRACE {
+		$$=new Node($1, $2);
+		string str="<classBody> -> LBRACE ";
+		str+="<constructorDeclaration> <MethodDeclaration> RBRACE";
+		$$->set(str);
+		$$=errorCheck($$);
+	}
+	| vardecs methoddecs RBRACE {
+		$$=new Node($1, $2);
+		string str="<classBody> -> LBRACE <varDeclaration>";
+		str+=" <MethodDeclaration> RBRACE";
+		$$->set(str);
+		$$=errorCheck($$);
+	}
+	| vardecs constructdecs RBRACE {
+		$$=new Node($1, $2);
+		string str="<classBody> -> LBRACE <varDeclaration> ";
+		str+="<constructorDeclaration> RBRACE";
+		$$->set(str);
+		$$=errorCheck($$);
+	}
+	| vardecs RBRACE {
+		$$=new Node($1);
+		$$->set("<classBody> -> LBRACE <varDeclaration> RBRACE");
+		$$=errorCheck($$);
+	}
+	| constructdecs RBRACE {
+		$$=new Node($1);
+		$$->set("<classBody> -> LBRACE <constructorDeclaration> RBRACE");
+		$$=errorCheck($$);
+	}
+	| methoddecs RBRACE {
+		$$=new Node($1);
+		$$->set("<classBody> -> LBRACE <MethodDeclaration> RBRACE");
+		$$=errorCheck($$);
+	}
+	| vardecs constructdecs methoddecs error {
+		printError("Expected \'}\'");
+		$$=new NodeERROR();
+	}
+	| vardecs methoddecs error {
+		printError("Expected \'}\'");
+		$$=new NodeERROR();
+	}
+	| constructdecs methoddecs error {
+		printError("Expected \'}\'");
+		$$=new NodeERROR();
+	}
+	| vardecs constructdecs error {
+		printError("Expected \'}\'");
+		$$=new NodeERROR();
+	}
+	| methoddecs error {
+		printError("Expected \'}\'");
+		$$=new NodeERROR();
+	}
+	| vardecs error {
+		printError("Expected \'}\'");
+		$$=new NodeERROR();
+	}/*
+	| methoddecs error {
+		printError("Expected \'}\'");
+		$$=new NodeERROR();
+	}*/
+;
+
+vardecs: vardecs vardec {
+		$1->setNext($2);
+	}
+	| vardec {
+		$$=$1;
+	}
+;
+vardec: type id SEMI {
+		$$=new Node($1, $2);
+		$$->set("<varDeclaration> -> <type> ID SEMI");
+		$$=errorCheck($$);
+	}
+	| type id error {
+		printError("Expected \';\'");
+		$$=new NodeERROR();
+	}
+;
+
+constructdecs: constructdecs constructdec {
+		$1->setNext($2);
+	}
+	| constructdec {
+		$$=$1;
+	}
+;
+constructdec: id LPAREN paramlist block {
+		$$=new Node($1, $4, $3);
+		string str="<constructorDeclaration> -> ID LPAREN <paramList> RPAREN";
+		str+=" <block>";
+		$$->set(str);
+		$$=errorCheck($$);
+	}
+	| id error paramlist RPAREN block {
+		printError("Expected \'(\'");
+		$$=new NodeERROR();
+	}
+	| id LPAREN paramlist error block {
+		printError("Expected \')\'");
+		$$=new NodeERROR();
+	}
+;
+
+methoddecs: methoddecs methoddec {
+		$1->setNext($2);
+	}
+	| methoddec {
+		$$=$1;
+	}
+;
+
+methoddec: resulttype constructdec {//id LPAREN paramlist block {
+		$$=$2;
+		Node* left=$$->getLeft();
+		Node* mid=$$->getMid();
+		Node* right=$$->getRight();
+		$$->setLeft($1);
+		$$->setMid(left);
+		$$->setRight(mid);
+		$$->setLast(right);
+		string str="<methodDeclaration> -> <resultType> ID LPAREN <paramList>";
+		str+=" RPAREN <block>";
+		$$->set(str);
+		$$=errorCheck($$);
+}
+	/* VOID id LPAREN paramlist block {
+		Node* tmp=new Node(new Node(new Node()));
+		tmp->set("<resultType> -> <type>");
+		tmp->getLeft()->set("<type> -> <simpleType>");
+		tmp->getLeft()->getLeft()->set("<simpleType> -> VOID");
+		$$=new Node(tmp, $4, $2, $5);
+		string str="<methodDeclaration> -> <resultType> ID LPAREN <paramList>";
+		str+=" RPAREN <block>";
+		$$->set(str);
+		$$=errorCheck($$);
+	}
+	| INTTYPE id LPAREN paramlist block {
+		Node* tmp=new Node(new Node(new Node()));
+		tmp->set("<resultType> -> <type>");
+		tmp->getLeft()->set("<type> -> <simpleType>");
+		tmp->getLeft()->getLeft()->set("<simpleType> -> INT");
+		$$=new Node(tmp, $4, $2, $5);
+		string str="<methodDeclaration> -> <resultType> ID LPAREN <paramList>";
+		str+=" RPAREN <block>";
+		$$->set(str);
+		$$=errorCheck($$);
+	}
+	| id id LPAREN paramlist block {
+		Node* tmp=new Node(new Node(new Node($1)));
+		tmp->set("<resultType> -> <type>");
+		tmp->getLeft()->set("<type> -> <simpleType>");
+		tmp->getLeft()->getLeft()->set("<simpleType> -> ID");
+		$$=new Node(tmp, $4, $2, $5);
+		string str="<methodDeclaration> -> <resultType> ID LPAREN <paramList>";
+		str+=" RPAREN <block>";
+		$$->set(str);
+		$$=errorCheck($$);
+		if(tmp->getLeft()->getLeft()->getLeft()->isErr()) {
+			Node* tmp2=$$->getLeft()->getLeft()->getLeft();
+			delete tmp;
+			delete $$;
+			$$=tmp2;
+		}
+	}*/
+	/* type id LPAREN paramlist block {
+		$$=new Node(new Node($1), $4, $2, $5);
+		string str="<methodDeclaration> -> <resultType> ID LPAREN <paramList>";
+		str+=" RPAREN <block>";
+		$$->set(str);
+		$$->getLeft()->set("<resultType> -> <type>");
+		$$=errorCheck($$);
+	}
+	| resulttype id LPAREN paramlist block {
+		$$=new Node($1, $4, $2, $5);
+		string str="<methodDeclaration> -> <resultType> ID LPAREN <paramList>";
+		str+=" RPAREN <block>";
+		$$->set(str);
+		$$=errorCheck($$);
+	}*/
+/*
+	| resulttype id error paramlist RPAREN block {
+		printError("Expected \'(\'");
+		$$=new NodeERROR();
+	}
+	| resulttype id LPAREN paramlist error block {
+		printError("Expected \')\'");
+		$$=new NodeERROR();
+	}
+*/
+;
+
+
+resulttype: type {
+		$$=new Node($1);
+		$$->set("<resultType> -> <type>");
+		$$=errorCheck($$);
+	}
+	| VOID {
+		$$=new Node();
+		$$->set("<resultType> -> VOID");
+	}
+	| error {
+			printError("Expected valid type");
+			$$=new NodeERROR();
+	}
+;/*
+resulttype: VOID {
+		$$=new Node();
+		$$->set("<resultType> -> VOID");
+		$$=errorCheck($$);
+	}
+	| INTTYPE {
+		$$=new Node(new Node(new Node()));
+		$$->set("<resultType> -> <type>");
+		$$->getLeft()->set("<type> -> <simpleType>");
+		$$->getLeft()->getLeft()->set("<simpleType> -> INT");
+	}
+	| id {
+		$$=new Node(new Node(new Node($1)));
+		$$->set("<resultType> -> <type>");
+		$$->getLeft()->set("<type> -> <simpleType>");
+		$$->getLeft()->getLeft()->set("<simpleType> -> ID");
+		if($$->getLeft()->getLeft()->getLeft()->isErr()) {
+			Node* tmp=$$->getLeft()->getLeft()->getLeft();
+			delete $$;
+			$$=tmp;
+		}
+	}
+;*/
+
+paramlist: paramlist2 RPAREN {
+		$$=$1;
+	}
+	| RPAREN {
+		$$=new Node();
+		$$->set("<parameterList> -> e");
+	}
+;
+paramlist2: paramlist2 COMMA param {
+		//yeah I know couldve done a hashmap like you said
+		//but we were too deep into this route to go back
+		string tmp=$1->getString();
+		tmp+=" COMMA <parameter>";
+		$1->set(tmp);
+		Node* p=$1->getLeft();
+		if(p->getNext()) {
+			p->getNext();//this could be nullptr hence the if
+			while(p->getNext()) {
+				p=p->getNext();
+			}
+			p->setNext($3);
+		}
+		else {
+			p->setNext($3);
+		}
+	}
+	| param {
+		$$=new Node($1);
+		$$->set("<parameterList> -> <parameter>");
+		$$=errorCheck($$);
+	}
+	| paramlist2 error param {
+		printError("Expected \',\'");
+		$$=new NodeERROR();
+	}
+;
+param: type id {
+		$$=new Node($1, $2);
+		$$->set("<parameter> -> <type> ID");
+		$$=errorCheck($$);
+	}
+;
+
+block: LBRACE localvardecs stmts RBRACE {
+		$$=new Node($2, $3);
+		$$->set("<block> -> LBRACE <localVarDeclaration>+ <statement>+ RBRACE");
+		$$=errorCheck($$);
+	}
+	| LBRACE localvardecs RBRACE {
+		$$=new Node($2);
+		$$->set("<block> -> LBRACE <localVarDeclaration>+ RBRACE");
+		$$=errorCheck($$);
+	}
+	| LBRACE stmts RBRACE {
+		$$=new Node($2);
+		$$->set("<block> -> LBRACE <statement>+ RBRACE");
+		$$=errorCheck($$);
+	}
+	| LBRACE RBRACE {
+		$$=new Node();
+		$$->set("<block> -> LBRACE RBRACE");
+		$$=errorCheck($$);
+	}
+	| error localvardecs stmts RBRACE {
+		printError("Expected \'{\'");
+		$$=new NodeERROR();
+	}
+	| LBRACE localvardecs stmts error {
+		printError("Expected \'}\'");
+		$$=new NodeERROR();
+	}
+	| error stmts RBRACE {
+		printError("Expected \'{\'");
+		$$=new NodeERROR();
+	}
+	| LBRACE stmts error {
+		printError("Expected \'}\'");
+		$$=new NodeERROR();
+	}
+	| error localvardecs RBRACE {
+		printError("Expected \'{\'");
+		$$=new NodeERROR();
+	}
+	| LBRACE localvardecs error {
+		printError("Expected \'}\'");
+		$$=new NodeERROR();
+	}
+	| error RBRACE {
+		printError("Expected \'{\'");
+		$$=new NodeERROR();
+	}
+	| LBRACE error {
+		printError("Expected \'}\'");
+		$$=new NodeERROR();
+	}
+;
+
+localvardecs: localvardecs localvardec {
+		//yeah I know couldve done a hashmap like you said
+		//but we were too deep into this route to go back
+		Node* p=$1;
+		if(p->getNext()) {
+			p->getNext();//this could be nullptr hence the if
+			while(p->getNext()) {
+				p=p->getNext();
+			}
+			p->setNext($2);
+		}
+		else {
+			p->setNext($2);
+		}
+	}
+	| localvardec {
+		$$=$1;
+	}
+;
+localvardec: type id SEMI {
+		$$=new Node($1, $2);
+		$$->set("<localVarDeclaration> -> <type> ID SEMI");
+		$$=errorCheck($$);
+	}
+	| type id error {
+		printError("Expected \';\'");
+		$$=new NodeERROR();
+	}
+;
+
+stmts: stmts stmt {
+		//yeah I know couldve done a hashmap like you said
+		//but we were too deep into this route to go back
+		Node* p=$1;
+		if(p->getNext()) {
+			p->getNext();//this could be nullptr hence the if
+			while(p->getNext()) {
+				p=p->getNext();
+			}
+			p->setNext($2);
+		}
+		else {
+			p->setNext($2);
+		}
+	}
+	| stmt {
+		$$=$1;
+	}
+;
+stmt: SEMI {
+		$$=new Node();
+		$$->set("<statement> -> SEMI");
+	}
+	| name ASSIGN exp SEMI {
+		$$=new Node($1, $3);
+		$$->set("<statement> -> <name> ASSIGN <expression> SEMI");
+		$$=errorCheck($$);
+	}
+	| name LPAREN arglst RPAREN {
+		$$=new Node($1, $3);
+		$$->set("<statement> -> <name> LPAREN <argList> SEMI");
+		$$=errorCheck($$);
+	}
+	| PRINT LPAREN arglst RPAREN SEMI {
+		$$=new Node($3);
+		$$->set("<statement> -> PRINT LPAREN <arglst> RPAREN");
+		$$=errorCheck($$);
+	}
+	| cndtlstmt {
+		$$=new Node($1);
+		$$->set("<statement> -> <conditionalStatement>");
+		$$=errorCheck($$);
+	}
+	| WHILE LPAREN exp RPAREN stmt {
+		$$=new Node($3, $5);
+		$$->set("<statement> -> WHILE LPAREN <expression> RPAREN <statement>");
+		$$=errorCheck($$);
+	}
+	| RETURN optlexp SEMI {
+		$$=new Node($2);
+		$$->set("<statement> -> RETURN <optionalStatement> SEMI");
+		$$=errorCheck($$);
+	}
+	| block {
+		$$=new Node($1);
+		$$->set("<statement> -> <block>");
+		$$=errorCheck($$);
+	}
+	| name error exp SEMI {
+		printError("Expected \'=\'");
+		$$=new NodeERROR();
+	}
+	| name ASSIGN exp error {
+		printError("Expected \';\'");
+		$$=new NodeERROR();
+	}
+	| name error arglst RPAREN {
+		printError("Expected \'(\'");
+		$$=new NodeERROR();
+	}
+	| name LPAREN arglst error {
+		printError("Expected \')\'");
+		$$=new NodeERROR();
+	}
+	| error LPAREN arglst RPAREN SEMI {
+		printError("Expected \'print\'");
+		$$=new NodeERROR();
+	}
+	| PRINT error arglst RPAREN SEMI {
+		printError("Expected \'(\'");
+		$$=new NodeERROR();
+	}
+	| PRINT LPAREN arglst error SEMI {
+		printError("Expected \')\'");
+		$$=new NodeERROR();
+	}
+	| PRINT LPAREN arglst RPAREN error {
+		printError("Expected \';\'");
+		$$=new NodeERROR();
+	}
+	| error LPAREN exp RPAREN stmt {
+		printError("Expected \'while\'");
+		$$=new NodeERROR();
+	}
+	| WHILE error exp RPAREN stmt {
+		printError("Expected \'(\'");
+		$$=new NodeERROR();
+	}
+	| WHILE LPAREN exp error stmt {
+		printError("Expected \')\'");
+		$$=new NodeERROR();
+	}
+	| error optlexp SEMI {
+		printError("Expected \'return\'");
+		$$=new NodeERROR();
+	}
+	| RETURN optlexp error {
+		printError("Expected \';\'");
+		$$=new NodeERROR();
+	}
+;
+
+name: THIS {
+		$$=new Node();
+		$$->set("<name> -> THIS");
+	}
+	| id {
+		$$=new Node($1);
+		$$->set("<name> -> ID");
+		$$=errorCheck($$);
+	}
+	| name DOT id {
+		$$=new Node($1, $3);
+		$$->set("<name> -> <name> DOT ID");
+		$$=errorCheck($$);
+	}
+	| name LBRACK exp RBRACK {
+		$$=new Node($1, $3);
+		$$->set("<name> -> <name> LBRACK <expression> RBRACK");
+		$$=errorCheck($$);
+	}
+	| name error id {
+		printError("Expected \'.\'");
+		$$=new NodeERROR();
+	}
+	| name error exp RBRACK {
+		printError("Expected \'[\'");
+		$$=new NodeERROR();
+	}
+	| name LBRACK exp error {
+		printError("Expected \']\'");
+		$$=new NodeERROR();
+	}
+	| error {
+		printError("Expected valid name");
+		$$=new NodeERROR();
+	}
+;
+
+arglst: arglst2 {
+		$$=$1;
+	}
+	| %empty {
+		$$=new Node();
+		$$->set("<argList> -> e");
+	}
+;
+arglst2: arglst2 COMMA exp {
+		//yeah I know couldve done a hashmap like you said
+		//but we were too deep into this route to go back
+		string tmp=$1->getString();
+		tmp+=" COMMA <expression>";
+		$1->set(tmp);
+		Node* p=$1->getLeft();
+		if(p->getNext()) {
+			p->getNext();//this could be nullptr hence the if
+			while(p->getNext()) {
+				p=p->getNext();
+			}
+			p->setNext($3);
+		}
+		else {
+			p->setNext($3);
+		}
+	}
+	| exp {
+		$$=new Node($1);
+		$$->set("<argList> -> <expression>");
+		$$=errorCheck($$);
+	}
+	| arglst2 error exp {
+		printError("Expected \',\'");
+		$$=new NodeERROR();
+	}
+;
+cndtlstmt: IF LPAREN exp RPAREN stmt {
+		$$=new Node($3, $5);
+		string str="<conditionalStatement> -> IF LPAREN <expression> RPAREN";
+		$$->set(str+" <statement>");
+		$$=errorCheck($$);
+	}
+	| IF LPAREN exp RPAREN stmt ELSE stmt {
+		$$=new Node($3, $7, $5);
+		string str="<conditionalStatement> -> IF LPAREN <expression> RPAREN";
+		$$->set(str+" <statement> ELSE <statement>");
+		$$=errorCheck($$);
+	}/*
+	| error LPAREN exp RPAREN stmt {
+		printError("Expected \'if\'");
+		$$=new NodeERROR();
+	}*/
+	| IF error exp RPAREN stmt {
+		printError("Expected \'(\'");
+		$$=new NodeERROR();
+	}
+	| IF LPAREN exp error stmt {
+		printError("Expected \')\'");
+		$$=new NodeERROR();
+	}
+;
+
+optlexp: %empty {
+		$$=new Node();
+		$$->set("<optionalExpression> -> e");
+		$$=errorCheck($$);
+	}
+	| exp {
+		$$=new Node($1);
+		$$->set("<optionalExpression -> <exp>");
+		$$=errorCheck($$);
+	}
+;
+
+newexp: NEW id LPAREN arglst RPAREN {
+		$$=new Node($2, $4);
+		$$->set("<newExpression> -> NEW ID LPAREN <argList> RPAREN");
+		$$=errorCheck($$);
+	}
+	| NEW simpletype {
+		$$=new Node($2);
+		$$->set("<newExpression> -> NEW <simpleType>");
+		$$=errorCheck($$);
+	}
+	| NEW simpletype bracketexps {
+		$$=new Node($2, $3);
+		string str="<newExpression> -> NEW <simpleType> <LBRACK ";
+		$$->set(str+"<expression> RBRACK>+");
+		$$=errorCheck($$);
+	}
+	| NEW simpletype bracketexps multibrackets {
+		$$=new Node($3, $2, $4);
+		$$->set("<newExpression> -> NEW <simpleType> ");
+		$$=errorCheck($$);
+	}
+	| error id LPAREN arglst RPAREN {
+			printError("Expected \'new\'");
+			$$=new NodeERROR();
+	}
+	| NEW id error arglst RPAREN {
+			printError("Expected \'(\'");
+			$$=new NodeERROR();
+	}
+	| NEW id RPAREN arglst error {
+			printError("Expected \'(\'");
+			$$=new NodeERROR();
+	}
+	| error simpletype {
+			printError("Expected \'new\'");
+			$$=new NodeERROR();
+	}
+	| error simpletype bracketexps {
+			printError("Expected \'new\'");
+			$$=new NodeERROR();
+	}
+	| error simpletype bracketexps multibrackets {
+			printError("Expected \'new\'");
+			$$=new NodeERROR();
+	}
+;
+bracketexps: bracketexps bracketexp {
+		//yeah I know couldve done a hashmap like you said
+		//but we were too deep into this route to go back
+		Node* p=$1;
+		if(p->getNext()) {
+			p->getNext();//this could be nullptr hence the if
+			while(p->getNext()) {
+				p=p->getNext();
+			}
+			p->setNext($2);
+		}
+		else {
+			p->setNext($2);
+		}
+	}
+	| bracketexp {
+		$$=$1;
+	}
+;
+bracketexp: LBRACK exp RBRACK {
+		$$=new NodeNOSPACE($2);
+		$$->set("<LBRACK <exp> RBRACK>");
+		$$=errorCheck($$);
+	}
+	| error RBRACK {
+			printError("Expected \']\'");
+			$$=new NodeERROR();
+	}
+	| LBRACK error {
+			printError("Expected \'[\'");
+			$$=new NodeERROR();
+	}
+;
+multibrackets: multibrackets multibracket {
+		//yeah I know couldve done a hashmap like you said
+		//but we were too deep into this route to go back
+		Node* p=$1;
+		if(p->getNext()) {
+			p->getNext();//this could be nullptr hence the if
+			while(p->getNext()) {
+				p=p->getNext();
+			}
+			p->setNext($2);
+		}
+		else {
+			p->setNext($2);
+		}
+	}
+	| multibracket {
+		$$=$1;
+	}
+;
+multibracket: LBRACK RBRACK {
+		$$=new NodeNOSPACE();
+		$$->set("<LBRACK RBRACK>");
+		$$=errorCheck($$);
+	}
+	| error RBRACK {
+			printError("Expected \'[\'");
+			$$=new NodeERROR();
+	}
+	| LBRACK error {
+			printError("Expected \']\'");
+			$$=new NodeERROR();
+	}
+;
+
+exp: name {
+		$$=new Node($1);
+		$$->set("<exp> -> <name>");
+		$$=errorCheck($$);
+	}
+	| INT {
+		const char* tmp=scanner.YYText();
+		$$=new Node(new NodeINT(atoi(tmp)));
+		$$->set("<exp> -> NUMBER");
+		$$=errorCheck($$);
+	}
+	| NUL {
+			$$=new Node();
+			$$->set("<exp> -> null");
+		}
+	| READ LPAREN RPAREN {
+			$$=new Node();
+			$$->set("<exp> -> READ LPAREN RPAREN");
+		}
+	| name LPAREN arglst RPAREN {
+		$$=new Node($1, $3);
+		$$->set("<expression> -> <name> LPAREN <argList> RPAREN");
+		$$=errorCheck($$);
+	}
+	| newexp {
+		$$=new Node($1);
+		$$->set("<expression> -> <newExpression>");
+		$$=errorCheck($$);
+	}
+	| unaryop exp{
+		$$=new Node($1, $2);
+		$$->set("<expression> -> <unaryOp> <expression>");
+		$$=errorCheck($$);
+	}
+	| exp relop exp {
+		$$=new Node($1, $3, $2);
+		$$->set("<expression> -> <expression> <relationOp> <expression>");
+		$$=errorCheck($$);
+	}
+	| exp sumop exp {
+		$$=new Node($1, $3, $2);
+		$$->set("<expression> -> <expression> <sumOp> <expression>");
+		$$=errorCheck($$);
+	}
+	| exp prodop exp {
+		$$=new Node($1, $3, $2);
+		$$->set("<expression> -> <expression> <productOp> <expression>");
+		$$=errorCheck($$);
+	}
+	| LPAREN exp RPAREN {
+		$$=new Node($2);
+		$$->set("<exp> -> ( <exp> )");
+		$$=errorCheck($$);
+	}/*
+	| error {
+			printError("Expected valid expression");
+			$$=new NodeERROR();
+	}*/
+	| name error arglst RPAREN {
+			printError("Expected \'(\'");
+			$$=new NodeERROR();
+	}
+	| name LPAREN arglst error {
+			printError("Expected \')\'");
+			$$=new NodeERROR();
+	}
+	| error exp RPAREN {
+			printError("Expected \'(\'");
+			$$=new NodeERROR();
+	}
+	| LPAREN exp error {
+			printError("Expected \')\'");
+			$$=new NodeERROR();
+	}
+;
+
+type: simpletype {
+		$$=new Node($1);
+		$$->set("<type> -> <simpleType>");
+		$$=errorCheck($$);
+	}
+	| type LBRACK RBRACK {
+		$$=new Node($1);
+		$$->set("<type> -> <type> LBRACK RBRACK");
+		$$=errorCheck($$);
+	}
+	| error {
+			printError("Expected valid type");
+			$$=new NodeERROR();
+	}
+;
+
+simpletype: INTTYPE {
+		$$=new Node();
+		$$->set("<simpleType> -> INT");
+	}
+	| id {
+		$$=new Node($1);
+		$$->set("<simpleType> -> ID");
+		$$=errorCheck($$);
+	}
+	| error {
+			printError("Expected valid simple type");
+			$$=new NodeERROR();
+	}
+;
+
+unaryop: PLUS %prec POS {
+		$$=new Node();
+		$$->set("<unaryOp> -> INCREMENT");
+	}
+	| MINUS /*%prec NEG */{
+		$$=new Node();
+		$$->set("<unaryOp> -> DECREMENT");
+	}
+	| NOT /*%prec NOTT */{
+		$$=new Node();
+		$$->set("<unaryOp> -> NOT");
+	}
+;
+
+relop: EQ {
+		$$=new Node();
+		$$->set("<relationOp> -> EQUALS");
+	}
+	| NEQ {
+		$$=new Node();
+		$$->set("<relationOp> -> NOT_EQUAL");
+	}
+	| LEQ {
+		$$=new Node();
+		$$->set("<relationOp> -> LESS_THAN_EQUAL");
+	}
+	| GEQ {
+		$$=new Node();
+		$$->set("<relationOp> -> GREATER_THAN_EQUAL");
+	}
+	| LT {
+		$$=new Node();
+		$$->set("<relationOp> -> LESS_THAN");
+	}
+	| GT {
+		$$=new Node();
+		$$->set("<relationOp> -> GREATER_THAN");
+	}
+;
+
+sumop: PLUS {
+		$$=new Node();
+		$$->set("<sumOp> -> ADD");
+	}
+	| MINUS {
+		$$=new Node();
+		$$->set("<sumOp> -> SUBTRACT");
+	}
+	| OR {
+		$$=new Node();
+		$$->set("<sumOp> -> OR");
+	}
+;
+
+prodop: TIMES {
+		$$=new Node();
+		$$->set("<productOp> -> TIMES");
+	}
+	| DIV {
+		$$=new Node();
+		$$->set("<productOp> -> DIVIDE");
+	}
+	| MOD {
+		$$=new Node();
+		$$->set("<productOp> -> MODULUS");
+	}
+	| AND {
+		$$=new Node();
+		$$->set("<productOp> -> AND");
+	}
+;
+
+id: IDENT {
+		$$=new Node();
+		string tmp=scanner.YYText();
+		tmp="ID -> "+tmp;
+		$$->set(tmp);
+	}
+;
+%%

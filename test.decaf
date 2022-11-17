@@ -1,0 +1,126 @@
+class a {
+	int dd;
+	a(int a, b a) {
+		int a;
+		b a;
+		;
+		test=!b;
+		test=-b;
+		test=+b;
+		this = new a(a, b);
+		this.b = new int[3];
+		this.b = new int[3][3+3];
+		this.b=null;
+		b.a[3]=read();
+		while ( 2-2==(2*a/b)&&(a%c)||(a==(c!=b)) ) {
+			int a;
+			b a;
+			return;
+		}
+		return a;
+		{
+			int a;
+			int b;
+			while(3<b+2>3<=d>=n) {
+				//empty
+			}
+
+		}
+	}
+	void function (int a, b d) {
+		int c;
+		int d;
+		{
+			int e;
+		}
+		return null;
+	}
+	int func(int a, b d) {
+
+	}
+	a f() {
+		while(a!=b) {
+			this.c=read();
+		}
+	}
+}
+class b {
+	int a;
+	b d;
+	int y;
+	a(int a, b a) {
+		int a;
+		b a;
+		;
+		test=!b;
+		test=-b;
+		test=+b;
+		this = new a(a, b);
+		this.b = new int[3];
+		this.b = new int[3][3+3];
+		this.b=null;
+		b.a[3]=read();
+		while ( 2-2==(2*a/b)&&(a%c)||(a==(c!=b)) ) {
+			int a;
+			b a;
+			return;
+		}
+		return a;
+		{
+			int a;
+			int b;
+			while(3<b+2>3<=d>=n) {
+				//empty
+			}
+
+		}
+	}
+}
+class c {
+	int a;
+	b d;
+	int y;
+	void function (int a, b d) {
+		int b;
+	}
+	int func(int a, b d) {
+
+	}
+	a f() {
+		int c;
+		while(a!=b) {
+			this.c=read();
+		}
+	}
+}
+
+
+class a {
+	int dd;
+	a() {
+		test(a, b, c);
+	}
+	void function (int a, b d) {
+		int c;
+		int d;
+		{
+			int e;
+
+		}
+		return null;
+	}
+	int func(int a, b d) {
+
+	}
+	a f() {
+		while(a!=b) {
+			this.c=read();
+		}
+	}
+}
+
+
+class a {
+	a() {}
+}
+

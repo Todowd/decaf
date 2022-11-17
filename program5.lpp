@@ -1,0 +1,418 @@
+/*
+program4.lpp
+COSC4785
+Tyler O'Dowd
+10/24/22
+
+This is the input into the flex scanner return ints based on matching
+*/
+
+%{
+
+#include<iostream>
+using std::cerr;
+using std::endl;
+#include<string>
+using std::string;
+using std::to_string;
+
+#include "program5.hpp"
+#include "program5.tab.hpp"
+
+int col=1;
+int line=1;
+int prev=0;
+string err="";
+extern string errType;
+
+void yyerror(const char* str) {
+  //cerr<<endl<<line<<": "<<"\n";
+  /*
+  for(int i=0; i<(to_string(line).length()+2); i++) {
+	cerr<<" ";
+  }
+  cerr<<"^"<<endl;
+  */
+  //cerr<<str<<endl;
+  return;
+}
+%}
+
+%option outfile="program5_lex.cpp"
+%option noyywrap
+%option yylineno
+%x ERROR
+%x COMMENT
+%x LINECOMMENT
+
+%%
+
+[/][*] {
+    //multi line comment open
+    col+=prev;
+    prev=YYLeng();
+    BEGIN(COMMENT);
+}
+
+
+[/][/] {
+    //multi line comment open
+    col+=prev;
+    prev=YYLeng();
+    BEGIN(LINECOMMENT);
+//    return(COMMENT);
+}
+
+[*][/] {
+    //multi line comment close
+    //this state technically shouldnt ever be achieved
+    col+=prev;
+    prev=YYLeng();
+}
+
+(void) {
+    //punctuation
+    col+=prev;
+    prev=YYLeng();
+    return(VOID);
+}
+
+(class) {
+    //punctuation
+    col+=prev;
+    prev=YYLeng();
+    return(CLASS);
+}
+
+(int) {
+    //punctuation
+    col+=prev;
+    prev=YYLeng();
+    return(INTTYPE);
+}
+
+(new) {
+    //punctuation
+    col+=prev;
+    prev=YYLeng();
+    return(NEW);
+}
+
+(print) {
+    //punctuation
+    col+=prev;
+    prev=YYLeng();
+    return(PRINT);
+}
+
+(read) {
+    //punctuation
+    col+=prev;
+    prev=YYLeng();
+    return(READ);
+}
+
+(return) {
+    //punctuation
+    col+=prev;
+    prev=YYLeng();
+    return(RETURN);
+}
+
+(null) {
+    //punctuation
+    col+=prev;
+    prev=YYLeng();
+    return(NUL);
+}
+
+(if) {
+    col+=prev;
+    prev=YYLeng();
+    return(IF);
+}
+(else) {
+    col+=prev;
+    prev=YYLeng();
+    return(ELSE);
+}
+(this) {
+    col+=prev;
+    prev=YYLeng();
+    return(THIS);
+}
+(while) {
+    //if else this or while
+    col+=prev;
+    prev=YYLeng();
+    return(WHILE);
+}
+
+([_a-zA-Z]+[_a-zA-Z0-9]*) {
+    //identifier
+    col+=prev;
+    prev=YYLeng();
+    return(IDENT);
+}
+
+[[] {
+    //enclosing op open
+    col+=prev;
+    prev=YYLeng();
+    return(LBRACK);
+}
+
+[{] {
+    //enclosing op open
+    col+=prev;
+    prev=YYLeng();
+    return(LBRACE);
+}
+
+[(] {
+    //enclosing op open
+    col+=prev;
+    prev=YYLeng();
+    return(LPAREN);
+}
+
+[0-9]+ {
+    //int
+    col+=prev;
+    prev=YYLeng();
+	return(INT);
+}
+
+!= {
+    //compare op (== !=)
+    col+=prev;
+    prev=YYLeng();
+    return(NEQ);
+}
+
+== {
+    //compare op (== !=)
+    col+=prev;
+    prev=YYLeng();
+    return(EQ);
+}
+
+(<=) {
+    //compare op (> >= < <=
+    col+=prev;
+    prev=YYLeng();
+    return(LEQ);
+}
+
+(>=) {
+    //compare op (> >= < <=
+    col+=prev;
+    prev=YYLeng();
+    return(GEQ);
+}
+
+[<] {
+    //compare op (> >= < <=
+    col+=prev;
+    prev=YYLeng();
+    return(LT);
+}
+
+[>] {
+    //compare op (> >= < <=
+    col+=prev;
+    prev=YYLeng();
+    return(GT);
+}
+
+[]] {
+    //enclosing op close
+    col+=prev;
+    prev=YYLeng();
+    return(RBRACK);
+}
+
+[)] {
+    //enclosing op close
+    col+=prev;
+    prev=YYLeng();
+    return(RPAREN);
+}
+
+[}] {
+    //enclosing op close
+    col+=prev;
+    prev=YYLeng();
+    return(RBRACE);
+}
+
+[.] {
+    //punctuation
+    col+=prev;
+    prev=YYLeng();
+    return(DOT);
+}
+
+[,] {
+    //punctuation
+    col+=prev;
+    prev=YYLeng();
+    return(COMMA);
+}
+
+[;] {
+    //punctuation
+    col+=prev;
+    prev=YYLeng();
+    return(SEMI);
+}
+
+[=] {
+    //punctuation
+    col+=prev;
+    prev=YYLeng();
+    return(ASSIGN);
+}
+
+[|]{2} {
+    //logical op
+    col+=prev;
+    prev=YYLeng();
+    return(OR);
+}
+
+[-] {
+    //math op
+    col+=prev;
+    prev=YYLeng();
+    return(MINUS);
+}
+
+[+] {
+    //math op
+    col+=prev;
+    prev=YYLeng();
+    return(PLUS);
+}
+
+[%] {
+    //punctuation
+    col+=prev;
+    prev=YYLeng();
+    return(MOD);
+}
+
+[/] {
+    //math op
+    col+=prev;
+    prev=YYLeng();
+    return(DIV);
+}
+
+[*] {
+    //math op
+    col+=prev;
+    prev=YYLeng();
+    return(TIMES);
+}
+
+[&]{2} {
+    //logical op
+    col+=prev;
+    prev=YYLeng();
+    return(AND);
+}
+
+[!] {
+    //punctuation
+    col+=prev;
+    prev=YYLeng();
+    return(NOT);
+}
+
+\t {
+    col+=prev;
+    prev=8-(col%8);
+}
+
+\n {
+    col=1;
+    prev=0;
+    line++;
+    //return(NEWLINE);
+}
+
+" "+ {
+    col+=prev;
+    prev=YYLeng();
+}
+
+. {
+    err=yytext;
+    BEGIN(ERROR);
+}
+
+<ERROR>"\n" {
+    col=1;
+    prev=0;
+    line++;
+	cerr<<line<<": "<</*errorLine<<*/"\nUnexpected lexical error"<<endl;
+    BEGIN(INITIAL);
+}
+<ERROR>" "  {
+    col+=prev;
+    prev=YYLeng();
+	cerr<<line<<": "<</*errorLine<<*/"\nUnexpected lexical error"<<endl;
+    BEGIN(INITIAL);
+}
+<ERROR>"\t" {
+    col+=prev;
+    prev=YYLeng();
+	cerr<<line<<": "<</*errorLine<<*/"\nUnexpected lexical error"<<endl;
+    BEGIN(INITIAL);
+}
+<ERROR>[-*(){}.+!=><&|%;,/]|(\[)|(\])   {
+    yyless(0);
+	cerr<<line<<": "<</*errorLine<<*/"\nUnexpected lexical error"<<endl;
+    BEGIN(INITIAL);
+    if(err.length()>1) {
+        return ER_WD;
+    } else {
+        return ER_CH;
+    }
+}
+<ERROR>.    {
+    col+=prev;
+    prev=YYLeng();
+    err.append(yytext);
+}
+
+<COMMENT>[*][/] {
+    col+=prev;
+    prev=YYLeng();
+    BEGIN(INITIAL);
+}
+<COMMENT>"\n" {
+    line++;
+    col=0;
+    prev=0;
+}
+<COMMENT>. {
+    col+=prev;
+    prev=YYLeng();
+}
+
+<LINECOMMENT>"\n"   {
+    col=1;
+    prev=0;
+    line++;
+    BEGIN(INITIAL);
+    //return(COMMENT);
+}
+<LINECOMMENT>. {
+    col+=prev;
+    prev=YYLeng();
+}
+
+%%
+

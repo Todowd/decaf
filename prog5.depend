@@ -1,0 +1,18 @@
+# depslib dependency file v1.0
+1666239043 source:/media/sf_CC/Program3/program3.cpp
+	<iostream>
+	<fstream>
+	<string>
+	<FlexLexer.h>
+	"nodes.hpp"
+	"program3.tab.hpp"
+
+1666239878 /media/sf_CC/Program3/nodes.hpp
+	<iostream>
+	<string>
+
+1666239618 /media/sf_CC/Program3/program3.tab.hpp
+
+1666240115 source:/media/sf_CC/Program3/nodes.cpp
+	"nodes.hpp"
+

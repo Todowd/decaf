@@ -1,0 +1,328 @@
+Tyler O'Dowd 
+PROG 4
+Grade:   77 / 100
+
+Makefile: clean target MUST remove executable. (-3 points)
+
+********************
+I told you all in class I would accept up to 5 S/R conflicts, 152 is too many
+(-5 points)
+
+I also said NO R/R conflicts (-5 points)
+********************
+
+I seems like you do not allow for there NOT being any constructors. All the rest
+of the options seem to be okay (-5 points)
+********************
+
+The lexical error should be more like 'Unexpected character (17,5): ":"'
+where the numbers are line/column respectively and the error character is in "".
+********************
+
+The segfault I got was a result of the errorCheck(). You deleted a Node. Not a
+problem but apparently it was NOT properly initialized because it had a bad
+pointer to another node. That is a non-zero value BUT not allocated memory.
+Suggest you make SURE all the constructors properly set all unused pointers to
+'nullptr' during initialization. (-5 points)
+
+********************
+
+Overall, not too bad. 
+
+************
+Testing output
+
+ 
+odowd-m testing
+
+make: 
+
+bison --report=state -W -d program4.ypp
+program4.ypp: warning: 152 shift/reduce conflicts [-Wconflicts-sr]
+program4.ypp: warning: 163 reduce/reduce conflicts [-Wconflicts-rr]
+flex++ --warn program4.lpp
+g++ -ggdb -Wall -Wno-sign-compare program4.cpp program4.hpp program4.tab.cpp program4_lex.cpp nodes.cpp -o program4
+
+################
+Using 1_class.decaf:
+
+<program> -> <classDeclaration>
+  <classDeclaration> -> CLASS ID <classBody>
+    ID -> foo
+    <classBody> -> LBRACE <varDeclaration> <constructorDeclaration> <MethodDeclaration> RBRACE
+      <varDeclaration> -> <type> ID SEMI
+        <type> -> <simpleType>
+          <simpleType> -> INT
+        ID -> a
+      <varDeclaration> -> <type> ID SEMI
+        <type> -> <simpleType>
+          <simpleType> -> INT
+        ID -> b
+      <constructorDeclaration> -> ID LPAREN <paramList> RPAREN <block>
+        ID -> foo
+        <parameterList> -> e
+        <block> -> LBRACE <localVarDeclaration>+ <statement>+ RBRACE
+          <localVarDeclaration> -> <type> ID SEMI
+            <type> -> <simpleType>
+              <simpleType> -> INT
+            ID -> a
+          <statement> -> <name> ASSIGN <expression> SEMI
+            <name> -> <name> DOT ID
+              <name> -> THIS
+              ID -> a
+            <exp> -> NUMBER
+              NUMBER -> 5
+      <methodDeclaration> -> <resultType> ID LPAREN <paramList> RPAREN <block>
+        <resultType> -> <type>
+          <type> -> <simpleType>
+            <simpleType> -> INT
+        ID -> boo
+        <parameterList> -> <parameter>
+          <parameter> -> <type> ID
+            <type> -> <simpleType>
+              <simpleType> -> INT
+            ID -> a
+        <block> -> LBRACE <statement>+ RBRACE
+          <statement> -> <name> ASSIGN <expression> SEMI
+            <name> -> ID
+              ID -> b
+            <exp> -> <name>
+              <name> -> ID
+                ID -> a
+          <statement> -> RETURN <optionalStatement> SEMI
+            <optionalExpression -> <exp>
+              <exp> -> NUMBER
+                NUMBER -> 1
+
+################
+Using 2_class.decaf:
+
+29: 
+Expected ';'
+29: 
+Expected '}'
+<program> -> <classDeclaration>
+  <classDeclaration> -> CLASS ID <classBody>
+    ID -> foo
+    <classBody> -> LBRACE <varDeclaration> <constructorDeclaration> <MethodDeclaration> RBRACE
+      <varDeclaration> -> <type> ID SEMI
+        <type> -> <simpleType>
+          <simpleType> -> INT
+        ID -> a
+      <varDeclaration> -> <type> ID SEMI
+        <type> -> <simpleType>
+          <simpleType> -> INT
+        ID -> b
+      <constructorDeclaration> -> ID LPAREN <paramList> RPAREN <block>
+        ID -> foo
+        <parameterList> -> e
+        <block> -> LBRACE <localVarDeclaration>+ <statement>+ RBRACE
+          <localVarDeclaration> -> <type> ID SEMI
+            <type> -> <simpleType>
+              <simpleType> -> INT
+            ID -> a
+          <statement> -> <name> ASSIGN <expression> SEMI
+            <name> -> <name> DOT ID
+              <name> -> THIS
+              ID -> a
+            <exp> -> NUMBER
+              NUMBER -> 5
+      <methodDeclaration> -> <resultType> ID LPAREN <paramList> RPAREN <block>
+        <resultType> -> <type>
+          <type> -> <simpleType>
+            <simpleType> -> INT
+        ID -> boo
+        <parameterList> -> <parameter>
+          <parameter> -> <type> ID
+            <type> -> <simpleType>
+              <simpleType> -> INT
+            ID -> a
+        <block> -> LBRACE <statement>+ RBRACE
+          <statement> -> <name> ASSIGN <expression> SEMI
+            <name> -> ID
+              ID -> b
+            <exp> -> <name>
+              <name> -> ID
+                ID -> a
+          <statement> -> RETURN <optionalStatement> SEMI
+            <optionalExpression -> <exp>
+              <exp> -> NUMBER
+                NUMBER -> 1
+  <program> -> <program> <classDec>
+    ID -> foo
+
+################
+Using 3_many.decaf:
+
+42: 
+Expected ';'
+42: 
+Expected '}'
+51: 
+Expected 'class'
+<program> -> <classDeclaration>
+  <classDeclaration> -> CLASS ID <classBody>
+    ID -> foo
+    <classBody> -> LBRACE <varDeclaration> <constructorDeclaration> <MethodDeclaration> RBRACE
+      <varDeclaration> -> <type> ID SEMI
+        <type> -> <simpleType>
+          <simpleType> -> INT
+        ID -> a
+      <varDeclaration> -> <type> ID SEMI
+        <type> -> <simpleType>
+          <simpleType> -> INT
+        ID -> b
+      <constructorDeclaration> -> ID LPAREN <paramList> RPAREN <block>
+        ID -> foo
+        <parameterList> -> e
+        <block> -> LBRACE <localVarDeclaration>+ <statement>+ RBRACE
+          <localVarDeclaration> -> <type> ID SEMI
+            <type> -> <simpleType>
+              <simpleType> -> INT
+            ID -> a
+          <statement> -> <name> ASSIGN <expression> SEMI
+            <name> -> <name> DOT ID
+              <name> -> THIS
+              ID -> a
+            <exp> -> NUMBER
+              NUMBER -> 5
+      <constructorDeclaration> -> ID LPAREN <paramList> RPAREN <block>
+        ID -> foo
+        <parameterList> -> <parameter>
+          <parameter> -> <type> ID
+            <type> -> <simpleType>
+              <simpleType> -> INT
+            ID -> x
+        <block> -> LBRACE <statement>+ RBRACE
+          <statement> -> <name> ASSIGN <expression> SEMI
+            <name> -> ID
+              ID -> a
+            <exp> -> <name>
+              <name> -> ID
+                ID -> x
+      <methodDeclaration> -> <resultType> ID LPAREN <paramList> RPAREN <block>
+        <resultType> -> <type>
+          <type> -> <simpleType>
+            <simpleType> -> INT
+        ID -> boo
+        <parameterList> -> <parameter>
+          <parameter> -> <type> ID
+            <type> -> <simpleType>
+              <simpleType> -> INT
+            ID -> a
+        <block> -> LBRACE <statement>+ RBRACE
+          <statement> -> <name> ASSIGN <expression> SEMI
+            <name> -> ID
+              ID -> b
+            <exp> -> <name>
+              <name> -> ID
+                ID -> a
+          <statement> -> RETURN <optionalStatement> SEMI
+            <optionalExpression -> <exp>
+              <exp> -> NUMBER
+                NUMBER -> 1
+      <methodDeclaration> -> <resultType> ID LPAREN <paramList> RPAREN <block>
+        <resultType> -> <type>
+          <type> -> <simpleType>
+            <simpleType> -> INT
+        ID -> doo
+        <parameterList> -> <parameter> COMMA <parameter> COMMA <parameter>
+          <parameter> -> <type> ID
+            <type> -> <simpleType>
+              <simpleType> -> INT
+            ID -> b
+          <parameter> -> <type> ID
+            <type> -> <simpleType>
+              <simpleType> -> INT
+            ID -> c
+          <parameter> -> <type> ID
+            <type> -> <simpleType>
+              <simpleType> -> INT
+            ID -> d
+        <block> -> LBRACE <statement>+ RBRACE
+          <statement> -> <name> ASSIGN <expression> SEMI
+            <name> -> ID
+              ID -> b
+            <exp> -> <name>
+              <name> -> ID
+                ID -> b
+          <statement> -> RETURN <optionalStatement> SEMI
+            <optionalExpression -> <exp>
+              <exp> -> <name>
+                <name> -> ID
+                  ID -> a
+  <program> -> <program> <classDec>
+    ID -> foo
+  
+
+################
+Using 4_errors.decaf:
+
+34: 
+Expected ';'
+34: 
+Expected '}'
+<program> -> <classDeclaration>
+  <classDeclaration> -> CLASS ID <classBody>
+    ID -> foo
+    <classBody> -> LBRACE <varDeclaration> <constructorDeclaration> <MethodDeclaration> RBRACE
+      <varDeclaration> -> <type> ID SEMI
+        <type> -> <simpleType>
+          <simpleType> -> INT
+        ID -> a
+      <varDeclaration> -> <type> ID SEMI
+        <type> -> <simpleType>
+          <simpleType> -> INT
+        ID -> b
+      <constructorDeclaration> -> ID LPAREN <paramList> RPAREN <block>
+        ID -> foo
+        <parameterList> -> e
+        <block> -> LBRACE <localVarDeclaration>+ <statement>+ RBRACE
+          <localVarDeclaration> -> <type> ID SEMI
+            <type> -> <simpleType>
+              <simpleType> -> INT
+            ID -> a
+          <statement> -> <name> ASSIGN <expression> SEMI
+            <name> -> <name> DOT ID
+              <name> -> THIS
+              ID -> a
+            <exp> -> NUMBER
+              NUMBER -> 5
+      <methodDeclaration> -> <resultType> ID LPAREN <paramList> RPAREN <block>
+        <resultType> -> <type>
+          <type> -> <simpleType>
+            <simpleType> -> INT
+        ID -> boo
+        <parameterList> -> <parameter>
+          <parameter> -> <type> ID
+            <type> -> <simpleType>
+              <simpleType> -> INT
+            ID -> a
+        <block> -> LBRACE <statement>+ RBRACE
+          <statement> -> <name> ASSIGN <expression> SEMI
+            <name> -> ID
+              ID -> b
+            <exp> -> <name>
+              <name> -> ID
+                ID -> a
+          <statement> -> RETURN <optionalStatement> SEMI
+            <optionalExpression -> <exp>
+              <exp> -> NUMBER
+                NUMBER -> 1
+  <program> -> <program> <classDec>
+    ID -> foo
+
+################
+Using 5_misc.decaf:
+
+10: 
+Expected ';'
+10: 
+Expected '}'
+<program> -> <classDeclaration>
+  ID -> a
+
+
+************
+
+ 
