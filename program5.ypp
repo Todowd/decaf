@@ -69,7 +69,7 @@ Node* errorCheck(Node* n) {
 %type<ttype> constructdecs methoddecs constructdec methoddec classbody
 %type<ttype> resulttype paramlist param block paramlist2 localvardecs
 %type<ttype> stmts localvardec stmt bracketexps bracketexp multibracket
-%type<ttype> multibrackets classstart
+%type<ttype> multibrackets classstart gendec genfuncdec
 %token<ttype> INT IDENT
 %token RPAREN LPAREN LBRACK RBRACK LBRACE RBRACE
 %token NEQ EQ LEQ GEQ LT GT AND OR
@@ -229,7 +229,7 @@ constructdecs: constructdecs constructdec {
 		$$=$1;
 	}
 ;
-LPAREN paramlist block
+a
 constructdec: id genfuncdec {
 		$$=new Node($1, $2->getleft(), $2->getRight());
 		delete $2;
