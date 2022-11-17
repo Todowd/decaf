@@ -212,7 +212,7 @@ vardecs: vardecs vardec {
 	}
 ;
 vardec: gendec SEMI {
-		$$=new Node($1, $2);
+		$$=new Node($1);
 		$$->set("<varDeclaration> -> <type> ID SEMI");
 		$$=errorCheck($$);
 	}
@@ -282,12 +282,9 @@ methoddec: gendec genfuncdec {//id LPAREN paramlist block {
         $$=errorCheck($$);
     }
     | VOID id LPAREN paramlist {
-        Node* left($1->getLeft());
-        string str="<resultType> -> <type>";
-        resultType->set(str);
-        left->setLeft(new Node(new Node()));
-        str="<type> -> VOID";
-        left->getLeft()->set(str);
+        Node* left();
+        string str="<resultType> -> VOID";
+        left->set(str);
         $$=new Node(left, $4, $2);
         $$=errorCheck($$);
     }
