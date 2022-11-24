@@ -21,6 +21,18 @@ class SymbolTable {
     };
 
     SymbolTable(SymbolTable* p);
+    void set(
+                unordered_map<string, vector<SymbolTable*>> c
+    );
+    void set(
+                unordered_map<string, Symbol*> p
+    );
+    void set(
+                unordered_map<string, Symbol*> v
+    );
+    unordered_map<string, vector<SymbolTable*>> getChildren();
+    unordered_map<string, Symbol*> getVars();
+    unordered_map<string, Symbol*> getParams();
 
     string id;
     string returnType;
@@ -35,6 +47,8 @@ class SymbolTable {
     void print();
     int getParamCount();
     Symbol* getParam(string s);
+    Symbol* getVar(string str);
+    vector<SymbolTable*> getChild(string str);
 
   protected:
     void print(int& n);

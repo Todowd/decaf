@@ -15,6 +15,7 @@ using std::ostream;
 #include<string>
 using std::string;
 
+#include "Symbol.hpp"
 
 class Node {
   public:
@@ -43,8 +44,10 @@ class Node {
     Node* getMid();
     Node* getLast();
     virtual void print();
-    //bool operator==(void);
-	bool isErr();
+    bool isErr();
+    Symbol* sym;
+    SymbolTable* table;
+    SymbolTable* parent;
 
   protected:
     int myline;

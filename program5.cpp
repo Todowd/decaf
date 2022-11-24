@@ -30,6 +30,7 @@ SymbolTable* root;
 
 int main() {
   tree=nullptr;
+  root=new SymbolTable(nullptr);
   ind=0;
   yyparse();
   //tree->print(); //not needed after program4

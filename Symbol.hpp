@@ -7,7 +7,7 @@ using std::string;
 class Symbol {
   public:
     Symbol();
-    Symbol(string i, string t, int dims);
+    Symbol(string i, string t, int dims=0);
     string id;
     string type;
     int dims;

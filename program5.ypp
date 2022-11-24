@@ -18,6 +18,7 @@ using std::endl;
 #include "program5.hpp"
 
 extern Node* tree;
+extern SymbolTable* root;
 extern yyFlexLexer scanner;
 extern int line;
 #define yylex() scanner.yylex()
@@ -114,6 +115,8 @@ classdec: classstart classbody {
 
 classstart: CLASS id LBRACE {
 		$$=new Node($2);
+		$$->sym=$2->sym;
+		$2->sym=nullptr;
 		$$->set("<classDeclaration> -> CLASS ID <classBody>");
 		$$=errorCheck($$);
 	}
@@ -134,6 +137,7 @@ classbody: RBRACE {
 	}
 	| vardecs constructdecs methoddecs RBRACE {
 		$$=new Node($1, $3, $2);
+		$$->table=new SymbolTable(nullptr);
 		string str="<classBody> -> LBRACE <varDeclaration> ";
 		str+="<constructorDeclaration> <MethodDeclaration> RBRACE";
 		$$->set(str);
@@ -190,11 +194,25 @@ vardecs: vardecs vardec {
 ;
 vardec: type id SEMI {
 		$$=new Node($1, $2);
+		$$->sym=new Symbol($1->sym->type, $2->sym->id, 0);
+		delete $1->sym;
+		$1->sym=nullptr;
+		delete $2->sym;
+		$2->sym=nullptr;
 		$$->set("<varDeclaration> -> <type> ID SEMI");
 		$$=errorCheck($$);
 	}
-  | type multibrackets id SEMI{
+  | type multibrackets id SEMI {
 		$$=new Node($1, $3, $2);
+		$$=new Node($1, $2);
+		Node* p=$2;
+		$$->sym=new Symbol($1->sym->type, $3->sym->id, $2->dims);
+		delete $1->sym;
+		$1->sym=nullptr;
+		delete $2->sym;
+		$2->sym=nullptr;
+		delete $3->sym;
+		$#->sym=nullptr;
 		$$->set("<varDeclaration> -> <type> <multibrackets> ID SEMI");
 		$$=errorCheck($$);
 	}
@@ -212,6 +230,7 @@ constructdec: id LPAREN paramlist block {
 		string str="<constructorDeclaration> -> ID LPAREN <paramList> RPAREN";
 		str+=" <block>";
 		$$->set(str);
+		$$->table=new Symboltable(nullptr);
 		$$=errorCheck($$);
 	}
 	| id error paramlist RPAREN block {
@@ -609,11 +628,9 @@ bracketexp: LBRACK exp RBRACK {
 	}
 ;
 multibrackets: multibrackets multibracket {
-		//yeah I know couldve done a hashmap like you said
-		//but we were too deep into this route to go back
 		Node* p=$1;
 		if(p->getNext()) {
-			p->getNext();//this could be nullptr hence the if
+			//p->getNext();//this could be nullptr hence the if
 			while(p->getNext()) {
 				p=p->getNext();
 			}
@@ -622,6 +639,9 @@ multibrackets: multibrackets multibracket {
 		else {
 			p->setNext($2);
 		}
+		p->sym->dims+=1;
+		delete $2->sym;
+		$2->sym=p->sym;//make all multibracket nodes share same symbol
 	}
 	| multibracket {
 		$$=$1;
@@ -629,6 +649,7 @@ multibrackets: multibrackets multibracket {
 ;
 multibracket: LBRACK RBRACK {
 		$$=new NodeNOSPACE();
+		$$->sym=new Symbol("", "", 1);
 		$$->set("<LBRACK RBRACK>");
 		$$=errorCheck($$);
 	}
@@ -752,11 +773,14 @@ exp: name {
 
 type: INTTYPE {
 		$$=new Node();
+		$$->sym=new symbol("", "int")
 		$$->set("<type> -> INT");
 		$$=errorCheck($$);
 	}
-        | id {
+  | id {
 		$$=new Node($1);
+		$$->sym=$1->sym;
+		$1->sym=nullptr;
 		$$->set("<type> -> ID");
 		$$=errorCheck($$);
 	}
@@ -766,6 +790,7 @@ id: IDENT {
 		$$=new Node();
 		string tmp=scanner.YYText();
 		tmp="ID -> "+tmp;
+		$$->sym=new Symbol(id, "");
 		$$->set(tmp);
 	}
 ;

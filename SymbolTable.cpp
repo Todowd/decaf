@@ -9,6 +9,34 @@ SymbolTable::SymbolTable(SymbolTable* p) {
   returnType="";
 }
 
+//I know its not exactly a wrapper here, but it was the quickest way
+//and it doesnt seem like it was where you really wanted things to be
+//like a wrapper in the use that it has in the parser
+void SymbolTable::set(
+  unordered_map<string, vector<SymbolTable*>> c
+) {
+  chilren=c;
+}
+void SymbolTable::set(
+  unordered_map<string, Symbol*> p
+) {
+  params=p;
+}
+void SymbolTable::set(
+  unordered_map<string, Symbol*> v
+) {
+  vars=v;
+}
+unordered_map<string, vector<SymbolTable*>> getChildren() {
+  return children;
+}
+unordered_map<string, Symbol*> getVars() {
+  return vars;
+}
+unordered_map<string, Symbol*> getParams() {
+  return params;
+}
+
 int SymbolTable::getParamCount() {
   return params.size();
 }
@@ -16,6 +44,18 @@ int SymbolTable::getParamCount() {
 Symbol* SymbolTable::getParam(string s) {
   if(params.count(s)>0) {
     return params[s];
+  }
+  return nullptr;
+}
+Symbol* getVar(string str) {
+  if(vars.count(str)>0) {
+    return vars[str];
+  }
+  return nullptr;
+}
+vector<SymbolTable*> getChild(string str) {
+  if(children.count(str)>0) {
+    return children(str);
   }
   return nullptr;
 }
