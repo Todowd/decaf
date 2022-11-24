@@ -1,0 +1,16 @@
+# Using 1_class.decaf
+  <TYPE TABLE>: Types
+    foo
+      <SYMBOL TABLE>: <class> foo
+        boo: method: int <-- 3
+        a: int
+        foo: constructor:  <-- 0
+        b: int
+        <SYMBOL TABLE>: <constructor> foo
+          a: int
+        <SYMBOL TABLE>: <method> boo
+          c: parameter 3 :foo
+          a: parameter 1 :int
+          b: parameter 2 :int
+    int
+    void

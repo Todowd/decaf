@@ -1,0 +1,97 @@
+/* vim: filetype=java
+ * This is a bigger input file for the 4th program that will be their compiler.
+ * It tests quite a bit.
+ */
+
+class foo {
+
+  int a;
+  int b;
+
+  foo()
+  {
+     int a;
+     this.a = 5;
+  }
+
+  foo( int x)
+  {
+     a = x;
+  }
+
+  int boo(int a)
+  {
+    b=a;
+    return 1;
+  }
+
+  int doo(int b, int c, int d)
+  {
+    b=b;
+    return a;
+  }
+
+
+}
+
+class goo {
+  int x;
+
+  foo c;
+
+  int main()
+  {
+    foo f;
+
+    if( x > 5) print(x);
+    return 0;
+  }
+}
+
+class boo {
+  int a;
+  foo b;
+  goo[][] c;
+
+  boo(int a, goo b) {
+    int a;
+    goo b;
+
+    a = b;
+    {
+      more less;
+      more = less;
+    }
+    while(a < 10) {
+      a=a+1;
+      b=a+1;
+    }
+    return;
+  }
+
+  goo f(int a, int b, boo c)
+  {
+    int [][] d;
+
+    d=new int [10][10][][][];
+
+    d[1]=a;
+
+    return c;
+  }
+
+  int moo () {}
+  void fb(){;;}
+
+  void names()
+  {
+
+    goo a;
+
+    a.main();
+    a.c.b=a.boo(5);
+    while(x > 5) x = x -1;
+    return ;
+  }
+
+}

@@ -1,0 +1,61 @@
+# Using 3_many.decaf
+
+Failed to find: 'more' in type table
+  <TYPE TABLE>: Types
+    int[][]
+    void
+    int
+    foo
+      <SYMBOL TABLE>: <class> foo
+        doo: method: int <-- 3
+        foo: constructor:  <-- 1
+        boo: method: int <-- 1
+        a: int
+        foo: constructor:  <-- 0
+        b: int
+        <SYMBOL TABLE>: <constructor> foo
+          a: int
+        <SYMBOL TABLE>: <constructor> foo
+          x: parameter 1 :int
+        <SYMBOL TABLE>: <method> boo
+          a: parameter 1 :int
+        <SYMBOL TABLE>: <method> doo
+          d: parameter 3 :int
+          b: parameter 1 :int
+          c: parameter 2 :int
+    goo
+      <SYMBOL TABLE>: <class> goo
+        main: method: int <-- 0
+        x: int
+        c: foo
+        <SYMBOL TABLE>: <method> main
+          f: foo
+    boo
+      <SYMBOL TABLE>: <class> boo
+        names: method: void <-- 0
+        fb: method: void <-- 0
+        b: foo
+        a: int
+        c: goo[][]
+        boo: constructor:  <-- 2
+        goo: method: goo <-- 3
+        moo: method: int <-- 0
+        <SYMBOL TABLE>: <constructor> boo
+          b: goo
+          a: int
+          <SYMBOL TABLE>: <block> sub-block
+            less: typeMissing
+          <SYMBOL TABLE>: sub-block
+            EMPTY
+        <SYMBOL TABLE>: <method> goo
+          c: parameter 3 :boo
+          b: parameter 2 :int
+          d: int[][]
+          a: parameter 1 :int
+        <SYMBOL TABLE>: moo
+          EMPTY
+        <SYMBOL TABLE>: fb
+          EMPTY
+        <SYMBOL TABLE>: <method> names
+          a: goo
+    goo[][]

@@ -1,0 +1,31 @@
+/*
+ * This one has things like read and print. 
+ */
+
+class Misc {
+
+  int a;
+  char b;
+
+  int last_method(int a, int b, char c)
+  {
+    int val;
+    print(a,b,c);
+
+    val = read();
+    if(val > 42 ) {
+      print(1, 2);
+    }
+    else {
+      if(val > 31) {
+	print(4, 5, 6);
+      }
+      else {
+	val = read();
+      }
+    }
+
+    return x + y + z * 97 % 6;
+  }
+}
+

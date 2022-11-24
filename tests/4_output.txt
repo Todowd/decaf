@@ -1,0 +1,30 @@
+#using 4_errors.decaf with only the LAST error uncommented.
+
+syntax error, unexpected SEMI
+Syntax error in vardec before ;  at line 41: col 10
+
+    blah ;
+         ^
+  <TYPE TABLE>: Types
+    foo
+      <SYMBOL TABLE>: <class> foo
+        boo: method: int <-- 1
+        a: int
+        foo: constructor:  <-- 0
+        b: int
+        <SYMBOL TABLE>: <constructor> foo
+          a: int
+        <SYMBOL TABLE>: <method> boo
+          a: parameter 1 :int
+    goo
+      <SYMBOL TABLE>: <class> goo
+        boo: method: int <-- 0
+        x: int
+        main: method: int <-- 0
+        c: foo
+        <SYMBOL TABLE>: <method> main
+          f: foo
+        <SYMBOL TABLE>: boo
+          EMPTY
+    int
+    void

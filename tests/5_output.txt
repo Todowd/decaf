@@ -1,0 +1,24 @@
+# Using 5_misc.decaf
+
+Failed to find: 'char' in type table
+  <TYPE TABLE>: Types
+    Misc
+      <SYMBOL TABLE>: <class> Misc
+        a: int
+        last_method: method: int <-- 3
+        b: typeMissing
+        <SYMBOL TABLE>: <method> last_method
+          c: parameter 3 :typeMissing
+          b: parameter 2 :int
+          val: int
+          a: parameter 1 :int
+          <SYMBOL TABLE>: sub-block
+            EMPTY
+          <SYMBOL TABLE>: sub-block
+            EMPTY
+            <SYMBOL TABLE>: sub-block
+              EMPTY
+            <SYMBOL TABLE>: sub-block
+              EMPTY
+    int
+    void

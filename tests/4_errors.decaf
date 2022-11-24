@@ -1,0 +1,46 @@
+/* 
+ * This is a basic input file for the 4th program that will be their compiler.
+ * It does not test everything but does what should be enough for now.
+ */
+
+class foo {
+
+  int a;
+  int b; // missing semicolon
+
+  foo()
+  {
+     int a;
+     this.a = 5; // comma vice period so that is not handled
+  }
+  int boo(int a)
+  {
+    b=a; // colon instead of semicolon, not handled get unexpected $end
+    return 1;
+ // missing a brace  not expected either
+   } 
+
+}
+
+class goo {
+  int x;
+
+  foo c;
+
+  // does not recognize missing rparen here
+  int main()
+  {
+    foo f;
+
+    if( x > 5) print(x);
+    return 0;
+  }
+
+  int boo()
+  {
+    blah ;
+  }
+
+}
+
+
