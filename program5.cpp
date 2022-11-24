@@ -26,12 +26,13 @@ using std::string;
 yyFlexLexer scanner;
 Node *tree;
 int ind;
+SymbolTable* root;
 
 int main() {
   tree=nullptr;
   ind=0;
   yyparse();
-  tree->print();
-  cout<<endl;
+  //tree->print(); //not needed after program4
+  //cout<<endl;
   return 0;
 }
