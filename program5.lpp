@@ -349,31 +349,33 @@ void yyerror(const char* str) {
 
 . {
     err=yytext;
-    BEGIN(ERROR);
+    cerr << "Unidentified character: " << yytext << endl;
+    //BEGIN(ERROR);
 }
 
+        /*
 <ERROR>"\n" {
     col=1;
     prev=0;
     line++;
-	cerr<<line<<": "<</*errorLine<<*/"\nUnexpected lexical error"<<endl;
+	cerr<<line<<": "<<"\nUnexpected lexical error"<<endl;
     BEGIN(INITIAL);
 }
 <ERROR>" "  {
     col+=prev;
     prev=YYLeng();
-	cerr<<line<<": "<</*errorLine<<*/"\nUnexpected lexical error"<<endl;
+	cerr<<line<<": "<<"\nUnexpected lexical error"<<endl;
     BEGIN(INITIAL);
 }
 <ERROR>"\t" {
     col+=prev;
     prev=YYLeng();
-	cerr<<line<<": "<</*errorLine<<*/"\nUnexpected lexical error"<<endl;
+	cerr<<line<<": "<<"\nUnexpected lexical error"<<endl;
     BEGIN(INITIAL);
 }
 <ERROR>[-*(){}.+!=><&|%;,/]|(\[)|(\])   {
     yyless(0);
-	cerr<<line<<": "<</*errorLine<<*/"\nUnexpected lexical error"<<endl;
+	cerr<<line<<": "<<"\nUnexpected lexical error"<<endl;
     BEGIN(INITIAL);
     if(err.length()>1) {
         return ER_WD;
@@ -386,6 +388,7 @@ void yyerror(const char* str) {
     prev=YYLeng();
     err.append(yytext);
 }
+        */
 
 <COMMENT>[*][/] {
     col+=prev;
