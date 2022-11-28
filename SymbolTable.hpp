@@ -7,56 +7,33 @@ using std::unordered_map;
 #include<vector>
 using std::vector;
 
-#include "Symbol.hpp"
+#include "Entry.hpp"
+#include "Type.hpp"
 
 class SymbolTable {
   public:
-    struct optional {
-      optional() {
-        table=nullptr;
-        var=nullptr;
-      }
-      vector<SymbolTable*>* table;
-      Symbol* var;
-    };
-
-    SymbolTable(SymbolTable* p);/*
-    void set(
-                unordered_map<string, vector<SymbolTable*>> c
-    );
-    void set(
-                unordered_map<string, Symbol*> p
-    );
-    void set(
-                unordered_map<string, Symbol*> v
-    );*/
-    unordered_map<string, vector<SymbolTable*>> getChildren();
-    unordered_map<string, Symbol*> getVars();
-    unordered_map<string, Symbol*> getParams();
+    SymbolTable(SymbolTable* p);
 
     string id;
-    string returnType;
+    Type* type;
+    int value;
     SymbolTable* parent;
+    SymbolTable* next;//for constructors and methods
 
-    int insert(string id);//class
-    int insert(string id, string type, int dim);//variable
-    int insert(string id, int count, Symbol** params, string rtn);//method
-    int insert(string id, int count, Symbol** params);//constructor
-    int insert(string id, SymbolTable* t);
-    SymbolTable* insert();//block
-    optional lookup(string id);//methods blocks and constructors
+    SymbolTable* lookup(string name);
+    int insert(string name, string type, int dims=0);
+    int insert(string name, Type* t);
+    int insert(string name, SymbolTable* t);
+    int insert(string name, Entry* e);
+    //int addDim(string name);
     void print();
-    int getParamCount();
-    Symbol* getParam(string s);
-    Symbol* getVar(string str);
-    vector<SymbolTable*>* getChild(string str);
 
   protected:
     void print(int& n);
+    bool exists(string name);
   private:
-    unordered_map<string, vector<SymbolTable*>> children;
-    unordered_map<string, Symbol*> vars;
-    unordered_map<string, Symbol*> params;
+    unordered_map<string, Entry*> vars;
+    unordered_map<string, SymbolTable*> scope;
 };
 
 void printDims(int n);

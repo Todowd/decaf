@@ -31,7 +31,7 @@ Node::~Node() {
 		delete mid;
   }
   if(last) {
-	delete last;
+    delete last;
   }
 }
 int Node::getInt() const {

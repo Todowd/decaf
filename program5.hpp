@@ -8,19 +8,26 @@ allows the cpp and scanner to both use the string called value
 
 */
 
-#ifndef SAMPLE_HPP
-#define SAMPLE_HPP
+#ifndef PROGRAM5_HPP
+#define PROGRAM5_HPP
 
 #include<string>
 
 #include "nodes.hpp"
+#include "SymbolTable.hpp"
+#include "SymbolTable.hpp"
 
 extern int col;
 extern int line;
 extern std::string err;
 extern Node* tree;
 extern SymbolTable* root;
-extern SymbolTable* tmp;
 extern std::string errType;
+extern SymbolTable* super;
+extern SymbolTable* table;
+extern SymbolTable* cnstr;
+extern Entry* symbol;
+extern Entry* func;
+extern Type* prms;
 
 #endif

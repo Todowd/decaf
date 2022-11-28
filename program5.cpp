@@ -22,17 +22,38 @@ using std::string;
 
 #include "nodes.hpp"
 #include "program5.tab.hpp"
+#include "SymbolTable.hpp"
+#include "Entry.hpp"
+#include "Type.hpp"
 
 yyFlexLexer scanner;
 Node *tree;
 int ind;
 SymbolTable* root;
 SymbolTable* super;
+SymbolTable* table;
+SymbolTable* cnstr;
+Entry* symbol;
+Entry* func;
+Type* prms;
 
 int main() {
   tree=nullptr;
   root=new SymbolTable(nullptr);
   super=root;
+  table=nullptr;
+  cnstr=nullptr;
+  symbol=nullptr;
+  prms=nullptr;
+  /*
+  //Im just going to put the primatives into the table
+  SymbolTable* tmp=new SymbolTable(root);
+  tmp->id="int";
+  root->insert(tmp);
+  tmp=new SymbolTable(root);
+  tmp->id="void";
+  root->insert(tmp);
+  */
   ind=0;
   yyparse();
   //tree->print(); //not needed after program4

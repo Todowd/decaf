@@ -15,7 +15,8 @@ using std::ostream;
 #include<string>
 using std::string;
 
-#include "Symbol.hpp"
+#include "Entry.hpp"
+#include "Type.hpp"
 #include "SymbolTable.hpp"
 
 class Node {
@@ -46,9 +47,8 @@ class Node {
     Node* getLast();
     virtual void print();
     bool isErr();
-    Symbol* sym;
+
     SymbolTable* table;
-    SymbolTable* parent;
 
   protected:
     int myline;
