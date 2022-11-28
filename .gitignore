@@ -14,3 +14,13 @@ bin/
 src/
 prog5.depend
 prog5.cbp
+old_but_newer/SymbolTable.hpp
+old_but_newer/SymbolTable.cpp
+old_but_newer/Symbol.hpp
+old_but_newer/Symbol.cpp
+old_but_newer/program5.ypp
+old_but_newer/program5.lpp
+old_but_newer/program5.hpp
+old_but_newer/program5.cpp
+old_but_newer/nodes.hpp
+old_but_newer/nodes.cpp
