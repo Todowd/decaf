@@ -10,6 +10,7 @@ class Symbol {
     Symbol(string i, string t, int dims=0);
     string id;
     string type;
+    //SymbolTable* type;
     int dims;
 };
 

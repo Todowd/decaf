@@ -20,7 +20,7 @@ class SymbolTable {
       Symbol* var;
     };
 
-    SymbolTable(SymbolTable* p);
+    SymbolTable(SymbolTable* p);/*
     void set(
                 unordered_map<string, vector<SymbolTable*>> c
     );
@@ -29,7 +29,7 @@ class SymbolTable {
     );
     void set(
                 unordered_map<string, Symbol*> v
-    );
+    );*/
     unordered_map<string, vector<SymbolTable*>> getChildren();
     unordered_map<string, Symbol*> getVars();
     unordered_map<string, Symbol*> getParams();
@@ -42,13 +42,14 @@ class SymbolTable {
     int insert(string id, string type, int dim);//variable
     int insert(string id, int count, Symbol** params, string rtn);//method
     int insert(string id, int count, Symbol** params);//constructor
-    int insert();//block
+    int insert(string id, SymbolTable* t);
+    SymbolTable* insert();//block
     optional lookup(string id);//methods blocks and constructors
     void print();
     int getParamCount();
     Symbol* getParam(string s);
     Symbol* getVar(string str);
-    vector<SymbolTable*> getChild(string str);
+    vector<SymbolTable*>* getChild(string str);
 
   protected:
     void print(int& n);
@@ -57,5 +58,8 @@ class SymbolTable {
     unordered_map<string, Symbol*> vars;
     unordered_map<string, Symbol*> params;
 };
+
+void printDims(int n);
+void in(int n);
 
 #endif

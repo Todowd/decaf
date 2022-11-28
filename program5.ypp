@@ -110,13 +110,19 @@ classdec: classstart classbody {
 		$$=$1;
 		$1->setRight($2);
 		$$=errorCheck($$);
+		SymbolTable* t=new SymbolTable(root);
+		$$->table=t;
+		$$->table->id=$1->sym->id;
+		root->insert($$->sym->id, t);
+		delete $1->sym;
 	}
 ;
 
 classstart: CLASS id LBRACE {
 		$$=new Node($2);
-		$$->sym=$2->sym;
-		$2->sym=nullptr;
+		$$->table=new SymbolTable(super);
+		$$->table->id=$2->sym->id;
+		delete $2->sym;
 		$$->set("<classDeclaration> -> CLASS ID <classBody>");
 		$$=errorCheck($$);
 	}
@@ -205,14 +211,14 @@ vardec: type id SEMI {
   | type multibrackets id SEMI {
 		$$=new Node($1, $3, $2);
 		$$=new Node($1, $2);
-		Node* p=$2;
-		$$->sym=new Symbol($1->sym->type, $3->sym->id, $2->dims);
+		//Node* p=$2;
+		$$->sym=new Symbol($1->sym->type, $3->sym->id, $2->sym->dims);
 		delete $1->sym;
 		$1->sym=nullptr;
 		delete $2->sym;
 		$2->sym=nullptr;
 		delete $3->sym;
-		$#->sym=nullptr;
+		$$->sym=nullptr;
 		$$->set("<varDeclaration> -> <type> <multibrackets> ID SEMI");
 		$$=errorCheck($$);
 	}
@@ -230,7 +236,7 @@ constructdec: id LPAREN paramlist block {
 		string str="<constructorDeclaration> -> ID LPAREN <paramList> RPAREN";
 		str+=" <block>";
 		$$->set(str);
-		$$->table=new Symboltable(nullptr);
+		$$->table=new SymbolTable(nullptr);
 		$$=errorCheck($$);
 	}
 	| id error paramlist RPAREN block {
@@ -773,7 +779,7 @@ exp: name {
 
 type: INTTYPE {
 		$$=new Node();
-		$$->sym=new symbol("", "int")
+		$$->sym=new Symbol("", "int");
 		$$->set("<type> -> INT");
 		$$=errorCheck($$);
 	}
@@ -789,8 +795,8 @@ type: INTTYPE {
 id: IDENT {
 		$$=new Node();
 		string tmp=scanner.YYText();
+		$$->sym=new Symbol(tmp, "");
 		tmp="ID -> "+tmp;
-		$$->sym=new Symbol(id, "");
 		$$->set(tmp);
 	}
 ;

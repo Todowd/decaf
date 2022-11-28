@@ -16,6 +16,7 @@ using std::ostream;
 using std::string;
 
 #include "Symbol.hpp"
+#include "SymbolTable.hpp"
 
 class Node {
   public:

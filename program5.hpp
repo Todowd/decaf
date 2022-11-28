@@ -19,7 +19,8 @@ extern int col;
 extern int line;
 extern std::string err;
 extern Node* tree;
-extern SymbolTable* tree;
+extern SymbolTable* root;
+extern SymbolTable* tmp;
 extern std::string errType;
 
 #endif

@@ -27,13 +27,16 @@ yyFlexLexer scanner;
 Node *tree;
 int ind;
 SymbolTable* root;
+SymbolTable* super;
 
 int main() {
   tree=nullptr;
   root=new SymbolTable(nullptr);
+  super=root;
   ind=0;
   yyparse();
   //tree->print(); //not needed after program4
   //cout<<endl;
+  root->print();
   return 0;
 }
