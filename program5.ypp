@@ -280,6 +280,7 @@ constructdec: id LPAREN paramlist block {
 		super->insert(table->id, table);
 
 		//upper=upper->parent;
+    upper=upper->parent;
 
 		table=nullptr;
 		prms=nullptr;
@@ -406,7 +407,6 @@ block: LBRACE localvardecs stmts RBRACE {
       upper->id=".";
 		}
 		upper->parent->insert(upper->id, upper);
-    upper=upper->parent;
 		$$=errorCheck($$);
 	}
 	| LBRACE localvardecs RBRACE {
@@ -425,7 +425,6 @@ block: LBRACE localvardecs stmts RBRACE {
       upper->id=".";
 		}
 		upper->parent->insert(upper->id, upper);
-    upper=upper->parent;
 		$$=errorCheck($$);
 	}
 	| LBRACE stmts RBRACE {
@@ -446,7 +445,6 @@ block: LBRACE localvardecs stmts RBRACE {
       upper->id=".";
 		}
 		upper->parent->insert(upper->id, upper);
-    upper=upper->parent;
 	}
 	| LBRACE RBRACE {
 		$$=new Node();
@@ -464,7 +462,6 @@ block: LBRACE localvardecs stmts RBRACE {
       upper->id=".";
 		}
 		upper->parent->insert(upper->id, upper);
-    upper=upper->parent;
 		$$=errorCheck($$);
 	}
 	| error localvardecs stmts RBRACE {
@@ -603,6 +600,9 @@ stmt: SEMI {
 		$$->table=super;
 		super=super->parent;
 		super->insert(".", $$->table);
+		upper->id=".";
+		upper->type=nullptr;
+    upper=upper->parent;
 		$$=errorCheck($$);
 	}
 	| error LPAREN arglst RPAREN SEMI {
