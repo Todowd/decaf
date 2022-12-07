@@ -2,7 +2,7 @@
 nodes.hpp
 COSC4785
 Tyler O'Dowd
-10/24/22
+12/5/22
 
 Nodes that make up the syntax tree
 */
@@ -48,7 +48,7 @@ class Node {
     virtual void print();
     bool isErr();
 
-    SymbolTable* table;
+    string name;
 
   protected:
     int myline;

@@ -1,8 +1,8 @@
 /*
-program4.lpp
+program6.lpp
 COSC4785
 Tyler O'Dowd
-10/24/22
+12/5/22
 
 This is the input into the flex scanner return ints based on matching
 */
@@ -16,8 +16,8 @@ using std::endl;
 using std::string;
 using std::to_string;
 
-#include "program5.hpp"
-#include "program5.tab.hpp"
+#include "program6.hpp"
+#include "program6.tab.hpp"
 
 int col=1;
 int line=1;
@@ -38,7 +38,7 @@ void yyerror(const char* str) {
 }
 %}
 
-%option outfile="program5_lex.cpp"
+%option outfile="program6_lex.cpp"
 %option noyywrap
 %option yylineno
 %x ERROR

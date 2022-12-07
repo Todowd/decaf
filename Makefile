@@ -4,18 +4,18 @@ YACC=bison
 YFLAGS=--report=state -W -d
 LEX=flex++
 LFLAGS=--warn
-SRC=program5.cpp program5.hpp program5.tab.cpp program5_lex.cpp nodes.cpp Type.cpp Entry.cpp SymbolTable.cpp
-HDRS=program5.tab.hpp nodes.hpp Type.hpp Entry.hpp SymbolTable.hpp
+SRC=program6.cpp program6.hpp program6.tab.cpp program6_lex.cpp nodes.cpp Type.cpp Entry.cpp SymbolTable.cpp
+HDRS=program6.tab.hpp nodes.hpp Type.hpp Entry.hpp SymbolTable.hpp
 
-program5: $(SRC) $(HDRS)
-	$(CXX) $(CXXFLAGS) $(SRC) -o program5
+program6: $(SRC) $(HDRS)
+	$(CXX) $(CXXFLAGS) $(SRC) -o program6
 
-program5.tab.cpp: program5.ypp nodes.hpp Entry.hpp Type.hpp SymbolTable.hpp
-	$(YACC) $(YFLAGS) program5.ypp
+program6.tab.cpp: program6.ypp nodes.hpp Entry.hpp Type.hpp SymbolTable.hpp
+	$(YACC) $(YFLAGS) program6.ypp
 
-program5_lex.cpp: program5.lpp nodes.hpp Entry.hpp Type.hpp SymbolTable.hpp
-	$(LEX) $(LFLAGS) program5.lpp
+program6_lex.cpp: program6.lpp nodes.hpp Entry.hpp Type.hpp SymbolTable.hpp
+	$(LEX) $(LFLAGS) program6.lpp
 
 clean: 
-	rm -f core.* program5.tab.* program5_lex.cpp program5 program5.output
+	rm -f core.* program6.tab.* program6_lex.cpp program6 program6.output
 

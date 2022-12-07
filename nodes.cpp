@@ -2,7 +2,7 @@
 nodes.cpp
 COSC4785
 Tyler O'Dowd
-10/24/22
+12/5/22
 
 Nodes that make up the syntax tree
 */
@@ -18,7 +18,7 @@ Node::Node(Node* Left, Node* Right, Node* Mid, Node* Last):
 i(0), left(Left), right(Right), mid(Mid), last(Last) {
   next=nullptr;
   err=false;
-  table=nullptr;
+  name="";
   reset();
 }
 Node::~Node() {

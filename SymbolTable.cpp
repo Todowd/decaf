@@ -1,3 +1,11 @@
+/*
+SymbolTable.cpp
+COSC4785
+Tyler O'Dowd
+12/5/22
+
+used to hold scope
+*/
 #include<iostream>
 using std::cout;
 using std::endl;
@@ -6,233 +14,157 @@ using std::endl;
 using std::vector;
 
 #include "SymbolTable.hpp"
+#include "Entry.hpp"
+//#include "Entry.hpp"
 
 extern SymbolTable* root;
 extern SymbolTable* upper;
 
 SymbolTable::SymbolTable(SymbolTable* p) {
   parent=p;
-  next=nullptr;
-  type=nullptr;
-  call=nullptr;
   value=0;
+  id="";
+  declared=false;
+  returnType=nullptr;
 }
 
-//insert whole SymbolTable
-int SymbolTable::insert(string name, SymbolTable* t) {
-  if(vars.count(name)>0) {
-    return -2;
-  }
-  if(scope.count(name)>0) {
-    //check for methods/constructor by same name
-    SymbolTable* checker=scope[name];
-    while(checker) {
-      if(checker->type) {
-        if(checker->type->equals(t->type)) {
-          return -1;
-        }
-      }
-      else {
-        //the type doesnt exist in the SymbolTable, thats a problem
-        return -3;
-      }
+SymbolTable::~SymbolTable() {
+  for(auto it=vars.begin(); it!=vars.end(); ++it) {
+    if(it->second) {
+      delete it->second;
     }
   }
-  scope[name]=t;
-  return 0;
-}
-//insert a whole Entry
-int SymbolTable::insert(string name, Entry* e) {
-  if(vars.count(name)>0) {
-    return -2;
-  }
-  if(scope.count(name)>0) {
-    return -1;
-  }
-  vars[name]=e;
-  return 0;
-}
-//insert variable
-int SymbolTable::insert(string name, string type, int dims) {
-  if(vars.count(name)>0) {
-    return -1;
-  }
-  else if(scope.count(name)>0) {
-    return -2;
-  }
-  vars[name]=new Entry(name, type, dims);
-  return 0;
-}
-//insert constructor/method
-int SymbolTable::insert(string name, Type* t) {
-  if(vars.count(name)>0) {
-    return -2;
-  }
-  //is constructor
-  if(name==id) {
-    //if there is a return value, and constructor thats an Error
-    if(t->rtn) {
-      return -3;
-    }
-  }
-  SymbolTable* loc=this;
-  if(scope.count(name)>0) {
-    //check for methods/constructor by same name
-    SymbolTable* checker=scope[name];
-    while(checker) {
-      if(checker->type) {
-        if(checker->type->equals(t)) {
-          return -1;
-        }
-      }
-      else {
-        //the type doesnt exist in the SymbolTable, thats a problem
-        return -4;
-      }
-    }
-    loc=checker;
-  }
-  loc->next=new SymbolTable(this);
-  loc->next->id=name;
-  loc->next->type=t;
-  return 0;
+  //returnType exists in Type and will be deleted
+  //parent exists in Type and will be deleted
 }
 
-//I recognize this is recursive, and if there were too many layers it would
-//need to be done with a loop, but were not dealing with anything that intense
-SymbolTable* SymbolTable::lookup(string name) {
-  if(scope.count(name)>0) {
-    return scope[name];
+bool SymbolTable::insert(string str, SymbolTable* sym) {
+  if(exists(str)) {
+    return false;
   }
-  if(vars.count(name)>0) {
-    //the var type couldnt be of something defined in the class, but could be
-    //the class the var is defined in, hence the parent->lookup
-    //we also want the type of the var, and give that SymbolTable back
-    return parent->lookup(vars[name]->type);
+  scope.emplace(str, sym);
+  return true;
+}
+
+bool SymbolTable::insert(string str, Entry* sym) {
+  if(exists(str)) {
+    return false;
   }
-  if(parent==nullptr) {
-    return nullptr;
+  vars.emplace(str, sym);
+  return true;
+}
+
+SymbolTable* SymbolTable::lookup(string str) {
+  unordered_map<string, SymbolTable*>::const_iterator it=scope.find(str);
+  if(it==scope.end()) {
+    unordered_map<string, Entry*>::const_iterator it2=vars.find(str);
+    if(it2==vars.end()) {
+      if(parent==nullptr) {
+        return nullptr;
+      }
+      return parent->lookup(str);
+    }
+    return it2->second->type;
   }
-  return parent->lookup(name);
+  return it->second;
 }
 
 bool SymbolTable::exists(string name) {
   return ((vars.count(name)>0)||(scope.count(name)>0));
 }
 
-vector<string> SymbolTable::copy(SymbolTable* t) {
-  vector<string> failed;
+void SymbolTable::addParamToName() {
+  string tmp="";
   for(auto it=vars.begin(); it!=vars.end(); ++it) {
-    if(t->insert(it->first, it->second)<0) {
-      failed.push_back(it->first);
+    //length(#parameter)=10
+    if(it->first.substr(it->first.find("#", 0), 10)=="#parameter") {
+      tmp=it->second->type->id.substr(0, it->second->type->id.find("#", 0))+tmp;
+      tmp="_"+tmp;
     }
   }
-  for(auto it=scope.begin(); it!=scope.end(); ++it) {
-    if(t->insert(it->first, it->second)<0) {
-      failed.push_back(it->first);
-    }
-  }
-  return failed;
+  id+=tmp;
 }
 
-SymbolTable* SymbolTable::lastCall() {
-  SymbolTable* tmp=call;
-  if(tmp) {
-    while(tmp->call) {
-      tmp=tmp->call;
-    }
-    return tmp;
-  }
-  return this;
-}
-
-void SymbolTable::print() {
-  cout<<"<root table>"<<endl;
-  int indent=2;
-  for(auto it=scope.begin(); it!=scope.end(); ++it) {
-    in(indent);
-    cout<<it->first<<endl;
-    indent+=2;
-    it->second->print(indent);
-    indent-=2;
-  }
-  return;
-}
-void SymbolTable::print(int& n) {
+void SymbolTable::print(int n) {
   in(n);
-  int t=0;
   cout<<"<symbol table>: ";
-  if((parent==root)||(parent==upper)) {
+  if(parent==nullptr) {
     cout<<"<class> "<<id<<endl;
   }
-  else if((type->rtn==nullptr)&&(n<7)) {
-    cout<<"<constructor> "<<id<<endl;
-    t=1;
+  else if(id.find("#const", 0)<id.npos) {
+  //else if(parent->id==id.substr(0, id.find("#const", 0))) {
+    cout<<"<constructor> "<<id.substr(0, id.find("#const", 0))<<endl;
   }
-  else if((type)&&(n<7)) {
-    //||(type->rtn=="VOID")||(type->rtn=="void"))
-    cout<<"<method> "<<id<<endl;
-    t=2;
+  else if(id.find("#method", 0)<id.npos) {
+    cout<<"<method> "<<id.substr(0, id.find("#method", 0))<<endl;
   }
-  else {//if((id==".")||(type==nullptr)) {
+  else {
     cout<<"<block> "<<endl;
-    t=3;
   }
-  n+=2;
-  //parameters
-  if((t==1)||(t==2)) {
-    Entry* tmp;
-    for(int i=0; i<type->getParamCount(); i++) {
-      tmp=type->getParam(i);
-      in(n);
-      cout<<tmp->id<<": parameter "<<i<<": "<<tmp->type<<endl;
-    }
-  }
+  n+=1;
   //variables
   for(auto it=vars.begin(); it!=vars.end(); ++it) {
-    in(n);
-    cout<<it->first<<": "<<it->second->type<<" <-- "<<it->second->dims<<endl;
+    it->second->print(n);
   }
   //methods and constructors
   for(auto it=scope.begin(); it!=scope.end(); ++it) {
-    Type* tmp=it->second->type;
-    //its a method or constructor, but not a block
-    if(tmp) {
+//std::cerr<<it->first<<endl;
+    //check if its a block
+    if(it->first.find("#block", 0)==it->first.npos) {
       in(n);
-      cout<<it->first<<": ";
-      //has a return type, so much be a method
-      if(tmp->rtn) {
-        cout<<"method: "<<tmp->rtn->type;
-        //cout<<"method: "<<tmp->rtn->id;
-        cout<<" <-- "<<(tmp->getParamCount());
+      //look to see if constructor or method
+      int f=it->second->id.find("#const", 0);
+      if(f<it->second->id.npos) {
+        cout<<it->second->id.substr(0, f)<<": Constructor: ";
+        //determine if has parameters
+        if(it->second->id.find("_", f)!=it->second->id.npos) {
+          //get only the params
+          string tmp=it->second->id.substr(
+            it->second->id.find("_", f),
+            it->second->id.npos
+          );
+          tmp+="_";
+          while(tmp!="_") {
+            int helper=tmp.find("_", 1);
+            cout<<tmp.substr(1, helper-1)<<" ";
+            tmp=tmp.substr(helper, tmp.npos);
+          }
+        }
+        //print the param count
+        cout<<"<-- "<<it->second->value<<endl;
       }
-      //if not method, then constructor
       else {
-        cout<<"constructor:  <-- "<<tmp->getParamCount();
+        f=it->second->id.find("#method", 0);
+        cout<<it->second->id.substr(0, f)<<": Method: ";
+        //determine if has parameters
+        if(it->second->id.find("_", f)!=it->second->id.npos) {
+          //get only the params
+          string tmp=it->second->id.substr(
+            it->second->id.find("_", f),
+            it->second->id.npos
+          );
+          tmp+="_";
+          while(tmp!="_") {
+            int helper=tmp.find("_", 1);
+            cout<<tmp.substr(1, helper-1)<<" ";
+            tmp=tmp.substr(helper, tmp.npos);
+          }
+        }
+        //print the param count
+        cout<<"<-- "<<it->second->value<<endl;
       }
-      cout<<endl;
     }
   }
   //print underlying SymbolTable 's
   for(auto it=scope.begin(); it!=scope.end(); ++it) {
-    SymbolTable* t=it->second;
-    t->print(n);
-    while(t->next) {
-      t=t->next;
-      t->print(n);
-    }
+    it->second->print(n);
   }
-  n-=2;
+  n-=1;
 }
 
-void printDims(int n) {
+void SymbolTable::in(int n) {
   for(int i=0; i<n; i++) {
-    cout<<"[]";
-  }
-}
-void in(int n) {
-  for(int i=0; i<n; i++) {
-    cout<<" ";
+    cout<<"  ";
   }
 }
 

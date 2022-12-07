@@ -1,5 +1,15 @@
+/*
+SymbolTable.hpp
+COSC4785
+Tyler O'Dowd
+12/5/22
+
+used to hold type symbol tables
+*/
 #ifndef SYMBOLTABLE_H
 #define SYMBOLTABLE_H
+
+class Entry;
 
 #include<unordered_map>
 using std::unordered_map;
@@ -7,38 +17,34 @@ using std::unordered_map;
 #include<vector>
 using std::vector;
 
-#include "Entry.hpp"
-#include "Type.hpp"
+#include<string>
+using std::string;
 
 class SymbolTable {
   public:
     SymbolTable(SymbolTable* p);
+    ~SymbolTable();
 
     string id;
-    Type* type;
     int value;
     SymbolTable* parent;
-    SymbolTable* next;//for constructors and methods
-    SymbolTable* call;
+    bool declared;
+    SymbolTable* returnType;
 
     SymbolTable* lookup(string name);
-    int insert(string name, string type, int dims=0);
-    int insert(string name, Type* t);
-    int insert(string name, SymbolTable* t);
-    int insert(string name, Entry* e);
+    bool insert(string name, SymbolTable* t);
+    bool insert(string name, Entry* e);
     SymbolTable* lastCall();
     void print();
-    vector<string> copy(SymbolTable* t);
-
+    void print(int n);
+    bool exists(string str);
+		void addParamToName();
   protected:
-    void print(int& n);
-    bool exists(string name);
+    void in(int n);
   private:
     unordered_map<string, Entry*> vars;
     unordered_map<string, SymbolTable*> scope;
 };
 
-void printDims(int n);
-void in(int n);
 
 #endif

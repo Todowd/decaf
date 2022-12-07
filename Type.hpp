@@ -1,22 +1,33 @@
+/*
+type.hpp
+COSC4785
+Tyler O'Dowd
+12/5/22
+
+used to hold type symbol tables
+*/
 #ifndef TYPE_H
 #define TYPE_H
 
-#include<vector>
-using std::vector;
+#include<unordered_map>
+using std::unordered_map;
 
-#include "Entry.hpp"
+#include<string>
+using std::string;
+
+#include "SymbolTable.hpp"
+//#include "Entry.hpp"
 
 class Type {
   public:
     Type();
-    Type(Entry* r);
-    Entry* rtn;
-    void addParam(Entry* e);
-    Entry* getParam(int n);
-    int getParamCount();
-    bool equals(Type* t);
+    ~Type();
+    bool insert(string str, SymbolTable* sym);
+    SymbolTable* lookup(string str);
+    void print(int n);
   private:
-    vector<Entry*> params;
+    unordered_map<string, SymbolTable*> types;
+    void indent(int n);
 };
 
 #endif

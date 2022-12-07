@@ -1,4 +1,24 @@
 class a {
+  int a;
+  obj b;
+  obj[] bb;
+  obj[][] bbb;
+  a() {}
+  a(int b) {}
+  a(int b, obj c) {}
+  int test() {}
+}
+class b {
+  int c;
+  int d;
+  b() {}
+  BADconstructor() {}
+  a func() {}
+  a func(int b, int c) {}
+  int test(int b, a var) {}
+}
+
+class a {
 	int dd;
 	a(int a, b a) {
 		int a;

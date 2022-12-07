@@ -1,34 +1,60 @@
+/*
+type.cpp
+COSC4785
+Tyler O'Dowd
+12/5/22
+
+used to hold type symbol tables
+*/
 #include "Type.hpp"
 
+#include<iostream>
+using std::cout;
+using std::endl;
+
 Type::Type() {
-  rtn=nullptr;
 }
 
-Type::Type(Entry *r) {
-  rtn=r;
-}
-
-void Type::addParam(Entry* e) {
-  params.push_back(e);
-  return;
-}
-
-int Type::getParamCount() {
-  return params.size();
-}
-
-Entry* Type::getParam(int n) {
-  return params[n];
-}
-
-bool Type::equals(Type* t) {
-  if((rtn->equals(t->rtn))&&(getParamCount()==t->getParamCount())) {
-    for(int i=0; i<t->getParamCount(); i++) {
-      if(!(params[i]->equals(t->getParam(i)))) {
-        return false;
-      }
+Type::~Type() {
+  for(auto it=types.begin(); it!=types.end(); it++) {
+    if(it->second) {
+      delete it->second;
     }
-    return true;
   }
-  return false;
+}
+
+bool Type::insert(string str, SymbolTable* sym) {
+  if(types.count(str)>0) {
+    return false;
+  }
+  types.emplace(str, sym);
+  return true;
+}
+
+SymbolTable* Type::lookup(string str) {
+  unordered_map<string, SymbolTable*>::const_iterator it=types.find(str);
+  if(it==types.end()) {
+    SymbolTable* t=new SymbolTable(nullptr);
+    t->id=str;
+    types.emplace(str, t);
+    return t;
+  }
+  return it->second;
+}
+
+void Type::print(int n) {
+  cout<<"Type Table:"<<endl;
+  n++;
+  for(auto it=types.begin(); it!=types.end(); it++) {
+    if(it->second->declared) {
+      cout<<it->first<<endl;
+      it->second->print(n);
+    }
+  }
+}
+
+void Type::indent(int n) {
+  for(int i=0; i<n; i++) {
+    cout<<"  ";
+  }
 }

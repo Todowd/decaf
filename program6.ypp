@@ -1,5 +1,5 @@
 /*
-program5.ypp
+program6.ypp
 COSC4785
 Tyler O'Dowd
 10/24/22
@@ -14,13 +14,23 @@ using std::cerr;
 using std::cout;
 using std::endl;
 
+#include<cstdlib>
+
+#include<string>
+using std::to_string;
+
 #include "nodes.hpp"
-#include "program5.hpp"
+#include "program6.hpp"
 #include "SymbolTable.hpp"
 #include "Entry.hpp"
 
 extern Node* tree;
-extern SymbolTable* root;
+extern SymbolTable* table;
+extern SymbolTable* sub;
+extern Entry* symbol;
+extern Type* typeTable;
+extern string value;
+extern string typeValue;
 extern yyFlexLexer scanner;
 extern int line;
 #define yylex() scanner.yylex()
@@ -28,16 +38,8 @@ extern int line;
 extern int col;
 extern string err;
 string errType;
-extern SymbolTable* super;
-extern SymbolTable* table;
-extern SymbolTable* callup;
-extern SymbolTable* blk;
-extern SymbolTable* upper;
-extern Entry* symbol;
-extern Entry* func;
-extern Type* prms;
-bool newblk=true;
-int counter=0;
+int paramCount=0;
+int count=0;
 
 void yyerror(const char*);
 
@@ -90,7 +92,7 @@ Node* errorCheck(Node* n) {
 %token LBRACK
 %precedence UMINUS
 %token SEMI NOT
-%type<ttype> program vardec name type arglst cndtlstmt arglst2
+%type<ttype> program vardec  name type arglst cndtlstmt arglst2
 %type<ttype> newexp id classdec vardecs optlexp
 %type<ttype> constructdecs methoddecs constructdec methoddec classbody
 %type<ttype> paramlist param block paramlist2 localvardecs
@@ -128,19 +130,18 @@ classdec: classstart classbody {
 classstart: CLASS id LBRACE {
 		$$=new Node($2);
 		$$->set("<classDeclaration> -> CLASS ID <classBody>");
-		$$->table=table;
-    super->insert(table->id, table);
-    super=table;
-    //upper->insert(blk->id, blk);
-    upper=new SymbolTable(upper);
-    upper->id=symbol->id;
-    upper->parent->insert(symbol->id, upper);
-    symbol=nullptr;
-    table=nullptr;
-    ret=nullptr;
-		prms=nullptr;
-		blk=nullptr;
 		$$=errorCheck($$);
+		table=typeTable->lookup(value);
+		sub=new SymbolTable(table);
+    if(table->declared) {
+      printError(value+" already defined");
+		}
+		else {
+      table->declared=true;
+		}
+    symbol=nullptr;
+    value="";
+    typeValue="";
 	}
 	| error id LBRACE {
 		printError("Expected \'class\'");
@@ -156,112 +157,117 @@ classbody: RBRACE {
 		$$=new Node();
 		$$->set("<classBody> -> LBRACE RBRACE");
 		$$=errorCheck($$);
-		super=super->parent;
-		upper=upper->parent;
+		table=table->parent;
 	}
 	| vardecs constructdecs methoddecs RBRACE {
 		$$=new Node($1, $3, $2);
 		string str="<classBody> -> LBRACE <varDeclaration> ";
 		str+="<constructorDeclaration> <MethodDeclaration> RBRACE";
 		$$->set(str);
-		super=super->parent;
-		upper=upper->parent;
 		$$=errorCheck($$);
+		table=table->parent;
 	}
 	| constructdecs methoddecs RBRACE {
 		$$=new Node($1, $2);
 		string str="<classBody> -> LBRACE ";
 		str+="<constructorDeclaration> <MethodDeclaration> RBRACE";
 		$$->set(str);
-		super=super->parent;
-		upper=upper->parent;
 		$$=errorCheck($$);
+		table=table->parent;
 	}
 	| vardecs methoddecs RBRACE {
 		$$=new Node($1, $2);
 		string str="<classBody> -> LBRACE <varDeclaration>";
 		str+=" <MethodDeclaration> RBRACE";
 		$$->set(str);
-		super=super->parent;
-		upper=upper->parent;
 		$$=errorCheck($$);
+		table=table->parent;
 	}
 	| vardecs constructdecs RBRACE {
 		$$=new Node($1, $2);
 		string str="<classBody> -> LBRACE <varDeclaration> ";
 		str+="<constructorDeclaration> RBRACE";
 		$$->set(str);
-		super=super->parent;
-		upper=upper->parent;
 		$$=errorCheck($$);
+		table=table->parent;
 	}
 	| vardecs RBRACE {
 		$$=new Node($1);
 		$$->set("<classBody> -> LBRACE <varDeclaration> RBRACE");
-		super=super->parent;
-		upper=upper->parent;
 		$$=errorCheck($$);
+		table=table->parent;
 	}
 	| constructdecs RBRACE {
 		$$=new Node($1);
 		$$->set("<classBody> -> LBRACE <constructorDeclaration> RBRACE");
-		super=super->parent;
-		upper=upper->parent;
 		$$=errorCheck($$);
+		table=table->parent;
 	}
 	| methoddecs RBRACE {
 		$$=new Node($1);
 		$$->set("<classBody> -> LBRACE <MethodDeclaration> RBRACE");
-		super=super->parent;
-		upper=upper->parent;
 		$$=errorCheck($$);
+		table=table->parent;
 	}
 	| vardecs error {
 		printError("Expected \'}\'");
-		upper=upper->parent;
 		$$=new NodeERROR();
+		table=table->parent;
 	}
 ;
 
 vardecs: vardecs vardec {
 		$1->setNext($2);
+		count=0;
 	}
 	| vardec {
 		$$=$1;
+		count=0;
 	}
 ;
+
 vardec: type id SEMI {
 		$$=new Node($1, $2);
-		super->insert(symbol->id, symbol);
-		upper->insert(symbol->id, symbol);
 		//clear the symbol after insertion to table
-		symbol=nullptr;
-		table=nullptr;
-		ret=nullptr;
-		prms=nullptr;
 		$$->set("<varDeclaration> -> <type> ID SEMI");
+    SymbolTable* tmp=typeTable->lookup(typeValue);
+    symbol=new Entry(value, tmp);
+    table->insert(value, symbol);
 		$$=errorCheck($$);
 	}
   | type multibrackets id SEMI {
 		//$$=new Node($1, $3, $2); /*IF NOT WORK FIX*/
 		$$=new Node($1, $2);
-		super->insert(symbol->id, symbol);
-		upper->insert(symbol->id, symbol);
-		//clear the symbol after insertion to table
-		symbol=nullptr;
-		table=nullptr;
-		ret=nullptr;
-		prms=nullptr;
 		$$->set("<varDeclaration> -> <type> <multibrackets> ID SEMI");
+    SymbolTable* tmp=typeTable->lookup(typeValue);
+    /*
+    if(tmp==nullptr) {
+      tmp=new SymbolTable(nullptr);
+      typeTable->insert(value, tmp);
+    }
+    */
+    symbol=new Entry(value, tmp, count);
+    count=0;
+    table->insert(value, symbol);
 		$$=errorCheck($$);
 	}
 ;
 
 constructdecs: constructdecs constructdec {
 		$1->setNext($2);
+		sub->id+="#const";
+		sub->addParamToName();
+		table->insert(sub->id, sub);
+		//setup for the next constructor
+		sub=new SymbolTable(table);
 	}
 	| constructdec {
 		$$=$1;
+		sub->id+="#const";
+		sub->addParamToName();
+		table->insert(sub->id, sub);
+		//setup for the next constructor
+		sub=new SymbolTable(table);
 	}
 ;
 constructdec: id LPAREN paramlist block {
@@ -269,25 +275,12 @@ constructdec: id LPAREN paramlist block {
 		string str="<constructorDeclaration> -> ID LPAREN <paramList> RPAREN";
 		str+=" <block>";
 		$$->set(str);
-		$$->table=table;
-		prms->rtn=nullptr;
-		table->type=prms;
-		/*
-		if($4->table) {
-      //super->copy($4->table);
-      $4->table->copy(super);
-		}*/
-		super->insert(table->id, table);
-
-		//upper=upper->parent;
-    upper=upper->parent;
-
-		table=nullptr;
-		prms=nullptr;
-		symbol=nullptr;
-		ret=nullptr;
-		blk=nullptr;
 		$$=errorCheck($$);
+		str=$1->name;
+		sub->id=str;
+		sub->declared=true;
+		sub->value=paramCount;
+		paramCount=0;
 	}
 	| id error paramlist RPAREN block {
 		printError("Expected \'(\'");
@@ -315,8 +308,15 @@ methoddec: type constructdec {
 		string str="<methodDeclaration> -> <resultType> ID LPAREN <paramList>";
 		str+=" RPAREN <block>";
 		$$->set(str);
-		prms->rtn=ret;
 		$$=errorCheck($$);
+		//doesnt matter what return type is for the sub->id as only one method with
+		//those same params can exist
+		sub->returnType=typeTable->lookup($1->name);
+		sub->id+="#method";
+		sub->addParamToName();
+		table->insert(sub->id, sub);
+		//setup for the next method
+		sub=new SymbolTable(table);
   }
   | VOID constructdec {
 		$$=$2;
@@ -332,19 +332,23 @@ methoddec: type constructdec {
 		str="<methodDeclaration> -> <resultType> ID LPAREN <paramList>";
 		str+=" RPAREN <block>";
 		$$->set(str);
-		prms->rtn=ret;
 		$$=errorCheck($$);
+		//doesnt matter what return type is for the sub->id as only one method with
+		//those same params can exist
+		sub->returnType=typeTable->lookup("void");
+		sub->id+="#method";
+		sub->addParamToName();
+		table->insert(sub->id, sub);
+		//setup for the next method
+		sub=new SymbolTable(table);
   }
 ;
 
 paramlist: paramlist2 RPAREN {
 		$$=$1;
-		newblk=false;
 	}
 	| RPAREN {
 		$$=new Node();
-		prms=new Type();
-		newblk=false;
 		$$->set("<parameterList> -> EMPTYSTRING");
 	}
 ;
@@ -363,22 +367,13 @@ paramlist2: paramlist2 COMMA param {
 		else {
 			p->setNext($3);
 		}
-		prms->addParam(symbol);
-		symbol=nullptr;
 		//$$=errorCheck($$); //why wasnt this here before???
 	}
 	| param {
 		$$=new Node($1);
 		$$->set("<parameterList> -> <parameter>");
-		if(prms) {
-      //already exists from method
-		}
-		else {
-      prms=new Type();
-		}
-		prms->addParam(symbol);
-		symbol=nullptr;
 		$$=errorCheck($$);
+//		paramCount=1;
 	}
 	| paramlist2 error param {
 		printError("Expected \',\'");
@@ -389,79 +384,30 @@ param: type id {
 		$$=new Node($1, $2);
 		$$->set("<parameter> -> <type> ID");
 		$$=errorCheck($$);
+		value+="#parameter_";
+		value+=to_string(paramCount++);
+		sub->insert(value, new Entry(value, typeTable->lookup(typeValue)));
 	}
 ;
 
 block: LBRACE localvardecs stmts RBRACE {
 		$$=new Node($2, $3);
 		$$->set("<block> -> LBRACE <localVarDeclaration>+ <statement>+ RBRACE");
-    $$->table=super;
-    super=super->parent;
-    if(prms) {
-      upper->type=prms;
-    }
-		if(table) {
-      upper->id=table->id;
-		}
-		else {
-      upper->id=".";
-		}
-		upper->parent->insert(upper->id, upper);
 		$$=errorCheck($$);
 	}
 	| LBRACE localvardecs RBRACE {
 		$$=new Node($2);
 		$$->set("<block> -> LBRACE <localVarDeclaration>+ RBRACE");
-    $$->table=super;
-    super=super->parent;
-
-    if(prms) {
-      upper->type=prms;
-    }
-		if(table) {
-      upper->id=table->id;
-		}
-		else {
-      upper->id=".";
-		}
-		upper->parent->insert(upper->id, upper);
 		$$=errorCheck($$);
 	}
 	| LBRACE stmts RBRACE {
 		$$=new Node($2);
 		$$->set("<block> -> LBRACE <statement>+ RBRACE");
 		$$=errorCheck($$);
-		super->insert(".", new SymbolTable(super));
-
-	  upper=new SymbolTable(upper);
-	  upper->insert(symbol->id, symbol);
-    if(prms) {
-      upper->type=prms;
-    }
-		if(table) {
-      upper->id=table->id;
-		}
-		else {
-      upper->id=".";
-		}
-		upper->parent->insert(upper->id, upper);
 	}
 	| LBRACE RBRACE {
 		$$=new Node();
 		$$->set("<block> -> LBRACE RBRACE");
-		super->insert(".", new SymbolTable(super));
-
-	  upper=new SymbolTable(upper);
-    if(prms) {
-      upper->type=prms;
-    }
-		if(table) {
-      upper->id=table->id;
-		}
-		else {
-      upper->id=".";
-		}
-		upper->parent->insert(upper->id, upper);
 		$$=errorCheck($$);
 	}
 	| error localvardecs stmts RBRACE {
@@ -490,16 +436,8 @@ localvardecs: localvardecs localvardec {
 		else {
 			p->setNext($2);
 		}
-		table->insert(symbol->id, symbol);
-		upper->insert(symbol->id, symbol);
-		symbol=nullptr;
 	}
 	| localvardec {
-	  upper=new SymbolTable(upper);
-	  upper->insert(symbol->id, symbol);
-    super=new SymbolTable(super);
-		table->insert(symbol->id, symbol);
-		symbol=nullptr;
 		$$=$1;
 	}
 ;
@@ -526,12 +464,9 @@ stmts: stmts stmt {
 		else {
 			p->setNext($2);
 		}
-		p->table->next=$2->table;
-		callup=nullptr;
 	}
 	| stmt {
 		$$=$1;
-		callup=nullptr;
 	}
 ;
 stmt: SEMI {
@@ -541,68 +476,36 @@ stmt: SEMI {
 	| name ASSIGN exp SEMI {
 		$$=new Node($1, $3);
 		$$->set("<statement> -> <name> ASSIGN <expression> SEMI");
-		$1->table->parent=$3->table;
-		$3->table->insert(callup->id, callup);
-		$$->table=$1->table;
-		counter=0;
-		callup=nullptr;
 		$$=errorCheck($$);
 	}
 	| name LPAREN arglst RPAREN {
 		$$=new Node($1, $3);
 		$$->set("<statement> -> <name> LPAREN <argList> SEMI");
-		$1->table->insert("params", $3->table);
-		$3->table->parent=$1->table;
-		callup->parent=$1->table;
-		$$->table=$1->table;
-		counter=0;
-		callup=nullptr;
 		$$=errorCheck($$);
 	}
 	| PRINT LPAREN arglst RPAREN SEMI {
 		$$=new Node($3);
 		$$->set("<statement> -> PRINT LPAREN <arglst> RPAREN");
-		$$->table=new SymbolTable(super);
-		$$->table->id="print";
-		$$->table->call=$3->table;
-		counter=0;
-		callup=nullptr;
 		$$=errorCheck($$);
 	}
 	| cndtlstmt {
 		$$=new Node($1);
 		$$->set("<statement> -> <conditionalStatement>");
-		//super=super->parent;
-		counter=0;
 		$$=errorCheck($$);
 	}
 	| WHILE LPAREN exp RPAREN stmt {
 		$$=new Node($3, $5);
 		$$->set("<statement> -> WHILE LPAREN <expression> RPAREN <statement>");
-    $$->table=new SymbolTable(super);
-    $$->table->id="while";
-    $$->table->next=$3->table;
-    $$->table->call=$5->table;
-		counter=0;
 		$$=errorCheck($$);
 	}
 	| RETURN optlexp SEMI {
 		$$=new Node($2);
 		$$->set("<statement> -> RETURN <optionalStatement> SEMI");
-		$$->table=new SymbolTable(super);
-		$$->table->id="return";
-		$$->table->call=$2->table;
 		$$=errorCheck($$);
 	}
 	| block {
 		$$=new Node($1);
 		$$->set("<statement> -> <block>");
-		$$->table=super;
-		super=super->parent;
-		super->insert(".", $$->table);
-		upper->id=".";
-		upper->type=nullptr;
-    upper=upper->parent;
 		$$=errorCheck($$);
 	}
 	| error LPAREN arglst RPAREN SEMI {
@@ -634,38 +537,19 @@ stmt: SEMI {
 name: THIS {
 		$$=new Node();
 		$$->set("<name> -> THIS");
-		$$->table=new SymbolTable(super);
-		$$->table->id=super->id;
-		if(callup) {
-		}
-		else {
-      callup=$$->table;
-		}
 	}
 	| id {
 		$$=new Node($1);
 		$$->set("<name> -> ID");
-		$$->table=new SymbolTable(super);
-		$$->table->id=symbol->id;
-		symbol=nullptr;
-		if(callup) {
-		}
-		else {
-      callup=$$->table;
-		}
 		$$=errorCheck($$);
 	}
 	| name DOT id {
 		$$=new Node($1, $3);
 		$$->set("<name> -> <name> DOT ID");
-		$1->table->call=new SymbolTable($1->table);
-		$1->table->call->id=symbol->id;
-		symbol=nullptr;
 		$$=errorCheck($$);
 	}
 	| name LBRACK exp RBRACK {
 		$$=new Node($1, $3);
-		$1->table->call=$3->table;
 		$$->set("<name> -> <name> LBRACK <expression> RBRACK");
 		$$=errorCheck($$);
 	}
@@ -689,7 +573,6 @@ arglst: arglst2 {
 	| %empty {
 		$$=new Node();
 		$$->set("<argList> -> EMPTYSTRING");
-		$$->table=new SymbolTable(super);
 	}
 ;
 arglst2: arglst2 COMMA exp {
@@ -707,13 +590,10 @@ arglst2: arglst2 COMMA exp {
 		else {
 			p->setNext($3);
 		}
-		//$1->table->next=$3->table;
-		p->table->next=$3->table;
 	}
 	| exp {
 		$$=new Node($1);
 		$$->set("<argList> -> <expression>");
-		$$->table=$1->table;
 		$$=errorCheck($$);
 	}
 	| arglst2 error exp {
@@ -725,24 +605,12 @@ cndtlstmt: IF LPAREN exp RPAREN stmt {
 		$$=new Node($3, $5);
 		string str="<conditionalStatement> -> IF LPAREN <expression> RPAREN";
 		$$->set(str+" <statement>");
-		$$->table=new SymbolTable(super);
-		$$->table->call=$3->table;
-		$$->table->id="if";
-		//SymbolTable* tmp=$5->table;
-		//str="statement";
-		//$$->insert(str, tmp);
-		$$->table->insert("statement", $5->table);
 		$$=errorCheck($$);
 	}
 	| IF LPAREN exp RPAREN stmt ELSE stmt {
 		$$=new Node($3, $7, $5);
 		string str="<conditionalStatement> -> IF LPAREN <expression> RPAREN";
 		$$->set(str+" <statement> ELSE <statement>");
-		$$->table=new SymbolTable(super);
-		$$->table->id="if";
-		$$->table->call=$3->table;
-		$$->table->insert("statement", $5->table);
-		$$->table->insert("else", $7->table);
 		$$=errorCheck($$);
 	}
 	/*
@@ -755,13 +623,11 @@ cndtlstmt: IF LPAREN exp RPAREN stmt {
 optlexp: %empty {
 		$$=new Node();
 		$$->set("<optionalExpression> -> EMPTYSTRING");
-		$$->table=new SymbolTable(super);
 		$$=errorCheck($$);
 	}
 	| exp {
 		$$=new Node($1);
 		$$->set("<optionalExpression -> <exp>");
-		$$->table=$1->table;
 		$$=errorCheck($$);
 	}
 ;
@@ -770,15 +636,10 @@ newexp: NEW id LPAREN arglst RPAREN {
 		$$=new Node($2, $4);
 		$$->set("<newExpression> -> NEW ID LPAREN <argList> RPAREN");
 		$$=errorCheck($$);
-		$$->table=new SymbolTable(super);
-		$$->table->id=symbol->id;
-		$$->table->call=$4->table;
 	}
 	| NEW INTTYPE {
 		$$=new Node();
 		$$->set("<newExpression> -> NEW <simpleType>");
-		$$->table=new SymbolTable(super);
-		$$->table->id="int";
 		$$=errorCheck($$);
 	}
 	| NEW INTTYPE bracketexps {
@@ -826,18 +687,15 @@ bracketexps: bracketexps bracketexp {
 		else {
 			p->setNext($2);
 		}
-		p->table->next=$2->table;
 	}
 	| bracketexp {
 		$$=$1;
-		$$->table=$1->table;
 	}
 ;
 bracketexp: LBRACK exp RBRACK {
 		$$=new NodeNOSPACE($2);
 		$$->set("<LBRACK <exp> RBRACK>");
 		$$=errorCheck($$);
-		$$->table=$2->table;
 	}
 ;
 multibrackets: multibrackets multibracket {
@@ -852,15 +710,16 @@ multibrackets: multibrackets multibracket {
 		else {
 			p->setNext($2);
 		}
+		count++;
 	}
 	| multibracket {
 		$$=$1;
+		count=1;
 	}
 ;
 multibracket: LBRACK RBRACK {
 		$$=new NodeNOSPACE();
 		$$->set("<LBRACK RBRACK>");
-	  symbol->dims++;
 		$$=errorCheck($$);
 	}
 ;
@@ -869,136 +728,84 @@ exp: name {
 		$$=new Node($1);
 		$$->set("<exp> -> <name>");
 		$$=errorCheck($$);
-		$$->table=$1->table;
 	}
 	| INT {
 		const char* tmp=scanner.YYText();
 		$$=new Node(new NodeINT(atoi(tmp)));
 		$$->set("<exp> -> NUMBER");
-		$$->table=new SymbolTable(super);
-		$$->table->id="number";
-		$$->table->value=$$->getLeft()->getInt();
 		$$=errorCheck($$);
 	}
 	| NUL {
 			$$=new Node();
 			$$->set("<exp> -> null");
-			$$->table=new SymbolTable(super);
-			$$->table->id="null";
 		}
 	| READ LPAREN RPAREN {
 			$$=new Node();
 			$$->set("<exp> -> READ LPAREN RPAREN");
-			$$->table=new SymbolTable(super);
-			$$->table->id="read";
 		}
 	| name LPAREN arglst RPAREN {
 		$$=new Node($1, $3);
 		$$->set("<expression> -> <name> LPAREN <argList> RPAREN");
-		$1->table->next=$3->table;
-		$$->table=$1->table;
 		$$=errorCheck($$);
 	}
 	| newexp {
 		$$=new Node($1);
 		$$->set("<expression> -> <newExpression>");
 		$$=errorCheck($$);
-		$$->table=$1->table;
 	}
 	| MINUS exp %prec UMINUS{
 		$$=new Node($2);
 		$$->set("<expression> -> MINUS <expression>");
-		$$->table=new SymbolTable(super);
-		$$->table->id="decrement";
-		$$->table->call=$2->table;
 		$$=errorCheck($$);
 	}
 	| PLUS exp %prec UMINUS{
 		$$=new Node($2);
 		$$->set("<expression> -> PLUS <expression>");
-		$$->table=new SymbolTable(super);
-		$$->table->id="increment";
-		$$->table->call=$2->table;
 		$$=errorCheck($$);
 	}
 	| NOT exp %prec UMINUS {
 		$$=new Node($2);
 		$$->set("<expression> -> NOT <expression>");
-		$$->table=new SymbolTable(super);
-		$$->table->id="not";
-		$$->table->call=$2->table;
 		$$=errorCheck($$);
 	}
 	| exp NEQ exp {
 		$$=new Node($1, $3);
 		$$->set("<expression> -> <expression> NEQ <expression>");
-		$$->table=new SymbolTable(super);
-		$$->table->id="!=";
-		$$->table->next=$3->table;
-		$1->table->call=$$->table;
 		$$=errorCheck($$);
 	}
 	| exp EQ exp {
 		$$=new Node($1, $3);
 		$$->set("<expression> -> <expression> EQ <expression>");
-		$$->table=new SymbolTable(super);
-		$$->table->id="==";
-		$$->table->next=$3->table;
-		$1->table->call=$$->table;
 		$$=errorCheck($$);
 	}
 	| exp LEQ exp {
 		$$=new Node($1, $3);
 		$$->set("<expression> -> <expression> LEQ <expression>");
-		$$->table=new SymbolTable(super);
-		$$->table->id="<=";
-		$$->table->next=$3->table;
-		$1->table->call=$$->table;
 		$$=errorCheck($$);
 	}
 	| exp GEQ exp {
 		$$=new Node($1, $3);
 		$$->set("<expression> -> <expression> GEQ <expression>");
-		$$->table=new SymbolTable(super);
-		$$->table->id=">=";
-		$$->table->next=$3->table;
-		$1->table->call=$$->table;
 		$$=errorCheck($$);
 	}
 	| exp LT exp {
 		$$=new Node($1, $3);
 		$$->set("<expression> -> <expression> LT <expression>");
-		$$->table=new SymbolTable(super);
-		$$->table->id="<";
-		$$->table->next=$3->table;
-		$1->table->call=$$->table;
 		$$=errorCheck($$);
 	}
 	| exp GT exp {
 		$$=new Node($1, $3);
 		$$->set("<expression> -> <expression> GT <expression>");
-		$$->table=new SymbolTable(super);
-		$$->table->id=">";
-		$$->table->next=$3->table;
-		$1->table->call=$$->table;
 		$$=errorCheck($$);
 	}
 	| exp AND exp {
 		$$=new Node($1, $3);
 		$$->set("<expression> -> <expression> AND <expression>");
-		$$->table=new SymbolTable(super);
-		$$->table->id="&&";
-		$$->table->next=$3->table;
-		$1->table->call=$$->table;
 		$$=errorCheck($$);
 	}
 	| exp OR exp {
 		$$=new Node($1, $3);
 		$$->set("<expression> -> <expression> OR <expression>");
-		$$->table=new SymbolTable(super);
-		$$->table->id="||";
-		$$->table->next=$3->table;
-		$1->table->call=$$->table;
 		$$=errorCheck($$);
 	}
 	| exp PLUS exp {
@@ -1009,44 +816,26 @@ exp: name {
 	| exp MINUS exp {
 		$$=new Node($1, $3);
 		$$->set("<expression> -> <expression> MINUS <expression>");
-		$$->table=new SymbolTable(super);
-		$$->table->id="-";
-		$$->table->next=$3->table;
-		$1->table->call=$$->table;
 		$$=errorCheck($$);
 	}
 	| exp TIMES exp {
 		$$=new Node($1, $3);
 		$$->set("<expression> -> <expression> TIMES <expression>");
-		$$->table=new SymbolTable(super);
-		$$->table->id="*";
-		$$->table->next=$3->table;
-		$1->table->call=$$->table;
 		$$=errorCheck($$);
 	}
 	| exp DIV exp {
 		$$=new Node($1, $3);
 		$$->set("<expression> -> <expression> DIV <expression>");
-		$$->table=new SymbolTable(super);
-		$$->table->id="/";
-		$$->table->next=$3->table;
-		$1->table->call=$$->table;
 		$$=errorCheck($$);
 	}
 	| exp MOD exp {
 		$$=new Node($1, $3);
 		$$->set("<expression> -> <expression> MOD <expression>");
-		$$->table=new SymbolTable(super);
-		$$->table->id="%";
-		$$->table->next=$3->table;
-		$1->table->call=$$->table;
 		$$=errorCheck($$);
 	}
 	| LPAREN exp RPAREN {
 		$$=new Node($2);
 		$$->set("<exp> -> ( <exp> )");
-		$$->table=new SymbolTable(super);
-		$$->table->call=$2->table;
 		$$=errorCheck($$);
 	}
 ;
@@ -1054,58 +843,32 @@ exp: name {
 type: INTTYPE {
 		$$=new Node();
 		$$->set("<type> -> INT");
-		if(symbol) {
-      symbol->type="int";
-		}
-		else {
-      symbol=new Entry();
-      symbol->id="int";
-      symbol->type=symbol->id;
-		}
-		if(ret) {
-      //already exists
-		}
-		else {
-      ret=symbol;
-		}
+		typeValue="int";
+		$$->name=typeValue;
 		$$=errorCheck($$);
 	}
   | id {
 		$$=new Node($1);
-		symbol->type=symbol->id;
-		$$->set("<type> -> ID");
-		if(ret) {
-      //already exists
-		}
-		else {
-      ret=symbol;
-		}
 		$$=errorCheck($$);
+		typeValue=value;
+		$$->name=typeValue;
+		/*
+		SymbolTable* tmp=typeTable->lookup(typeValue);
+		//we havent come across this class yet
+    if(tmp==nullptr) {
+      tmp=new SymbolTable(nullptr);
+      tmp->id=typeValue;
+      typeTable->insert(value, tmp);
+    }
+    */
 	}
 ;
 
 id: IDENT {
 		$$=new Node();
 		string tmp=scanner.YYText();
-		//its some sort of type or something, because the symbol hasnt been cleared
-		if(symbol) {
-      symbol->id=tmp;
-		}
-		else {
-      symbol=new Entry();
-      symbol->id=tmp;
-		}
-		if(table) {
-      //already exists dont overwrite it
-		}
-		else {
-      table=new SymbolTable(super);
-      table->id=tmp;
-		}
-/*		$$->entry=new Entry();
-		$$->entry->id=symbol->id;
-		$$->entry->type=symbol->type;
-		$$->table=table;*/
+		value=tmp;
+		$$->name=value;
 		tmp="ID -> "+tmp;
 		$$->set(tmp);
 	}

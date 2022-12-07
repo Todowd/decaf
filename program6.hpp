@@ -1,5 +1,5 @@
 /*
-program.hpp
+program6.hpp
 COSC4785
 Tyler O'Dowd
 9/30/22
@@ -21,15 +21,12 @@ extern int col;
 extern int line;
 extern std::string err;
 extern Node* tree;
-extern SymbolTable* root;
 extern std::string errType;
-extern SymbolTable* super;
 extern SymbolTable* table;
-extern SymbolTable* blk;
-extern SymbolTable* callup;
-extern SymbolTable* upper;
+extern SymbolTable* sub;
 extern Entry* symbol;
-extern Entry* ret;
-extern Type* prms;
+extern Type* typeTable;
+extern string value;
+extern string typeValue;
 
 #endif
