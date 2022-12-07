@@ -26,6 +26,7 @@ SymbolTable::SymbolTable(SymbolTable* p) {
   id="";
   declared=false;
   returnType=nullptr;
+  blockCount=0;
 }
 
 SymbolTable::~SymbolTable() {
@@ -76,10 +77,13 @@ bool SymbolTable::exists(string name) {
 void SymbolTable::addParamToName() {
   string tmp="";
   for(auto it=vars.begin(); it!=vars.end(); ++it) {
+    //check if its a param
+    if(it->first.find("#", 0)<it->first.npos) {
     //length(#parameter)=10
-    if(it->first.substr(it->first.find("#", 0), 10)=="#parameter") {
-      tmp=it->second->type->id.substr(0, it->second->type->id.find("#", 0))+tmp;
-      tmp="_"+tmp;
+      if(it->first.substr(it->first.find("#", 0), 10)=="#parameter") {
+        tmp=it->second->type->id.substr(0, it->second->type->id.find("#", 0))+tmp;
+        tmp="_"+tmp;
+      }
     }
   }
   id+=tmp;

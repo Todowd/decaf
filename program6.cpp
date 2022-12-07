@@ -31,6 +31,7 @@ Node *tree;
 int ind;
 SymbolTable* table;
 SymbolTable* sub;
+SymbolTable* current;
 Entry* symbol;
 Type* typeTable;
 string value;
@@ -40,6 +41,8 @@ int main() {
   tree=nullptr;
   symbol=nullptr;
   typeTable=new Type();
+  sub=nullptr;
+  current=nullptr;
   //manually enter void
   table=new SymbolTable(nullptr);
   table->id="void";

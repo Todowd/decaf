@@ -15,7 +15,7 @@ allows the cpp and scanner to both use the string called value
 
 #include "nodes.hpp"
 #include "SymbolTable.hpp"
-#include "SymbolTable.hpp"
+#include "Type.hpp"
 
 extern int col;
 extern int line;
@@ -24,6 +24,7 @@ extern Node* tree;
 extern std::string errType;
 extern SymbolTable* table;
 extern SymbolTable* sub;
+extern SymbolTable* current;
 extern Entry* symbol;
 extern Type* typeTable;
 extern string value;

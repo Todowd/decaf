@@ -4,18 +4,82 @@ class a {
   obj[] bb;
   obj[][] bbb;
   a() {}
-  a(int b) {}
-  a(int b, obj c) {}
-  int test() {}
+  a(int b) {
+    obj local;
+  }
+  a(int b, obj c) {
+    int var;
+  }
+  int test() {
+    obj n;
+    {
+      int m;
+      obj x;
+    }
+    {
+      int mm;
+      obj xx;
+    }
+  }
 }
 class b {
   int c;
   int d;
-  b() {}
-  BADconstructor() {}
+  b() {
+    int e;
+    int f;
+  }
+  BADconstructor() {
+    int e;
+    obj j;
+    int f;
+    obj h;
+  }
   a func() {}
-  a func(int b, int c) {}
-  int test(int b, a var) {}
+  a func(int b, int c) {
+    int ee;
+    obj jj;
+    int ff;
+    obj hh;
+    {
+      int m;
+      obj x;
+      {
+        int mo;
+        obj xy;
+      }
+    }
+    {
+      int momo;
+      obj xyxy;
+      {
+        int momomo;
+        obj xyxyxy;
+      }
+    }
+  }
+  int test(int b, a var) {
+    int eee;
+    obj jjj;
+    int fff;
+    obj hhh;
+    {
+      int iii;
+      obj kkk;
+      {
+        int iiii;
+        obj kkkk;
+        {
+          int iiiii;
+          obj kkkkk;
+          {
+            int iiiiii;
+            obj kkkkkk;
+          }
+        }
+      }
+    }
+  }
 }
 
 class a {

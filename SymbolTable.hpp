@@ -30,12 +30,13 @@ class SymbolTable {
     SymbolTable* parent;
     bool declared;
     SymbolTable* returnType;
+    int blockCount;
 
     SymbolTable* lookup(string name);
     bool insert(string name, SymbolTable* t);
     bool insert(string name, Entry* e);
     SymbolTable* lastCall();
-    void print();
+    //void print();
     void print(int n);
     bool exists(string str);
 		void addParamToName();

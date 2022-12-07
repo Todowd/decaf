@@ -15,8 +15,6 @@ using std::ostream;
 #include<string>
 using std::string;
 
-#include "Entry.hpp"
-#include "Type.hpp"
 #include "SymbolTable.hpp"
 
 class Node {
@@ -49,6 +47,7 @@ class Node {
     bool isErr();
 
     string name;
+    SymbolTable* block;
 
   protected:
     int myline;

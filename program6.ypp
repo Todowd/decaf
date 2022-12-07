@@ -27,6 +27,7 @@ using std::to_string;
 extern Node* tree;
 extern SymbolTable* table;
 extern SymbolTable* sub;
+extern SymbolTable* current;
 extern Entry* symbol;
 extern Type* typeTable;
 extern string value;
@@ -40,6 +41,7 @@ extern string err;
 string errType;
 int paramCount=0;
 int count=0;
+bool hasVars=false;
 
 void yyerror(const char*);
 
@@ -133,6 +135,7 @@ classstart: CLASS id LBRACE {
 		$$=errorCheck($$);
 		table=typeTable->lookup(value);
 		sub=new SymbolTable(table);
+		current=nullptr;
     if(table->declared) {
       printError(value+" already defined");
 		}
@@ -280,6 +283,7 @@ constructdec: id LPAREN paramlist block {
 		sub->id=str;
 		sub->declared=true;
 		sub->value=paramCount;
+		current=nullptr;
 		paramCount=0;
 	}
 	| id error paramlist RPAREN block {
@@ -394,11 +398,13 @@ block: LBRACE localvardecs stmts RBRACE {
 		$$=new Node($2, $3);
 		$$->set("<block> -> LBRACE <localVarDeclaration>+ <statement>+ RBRACE");
 		$$=errorCheck($$);
+		hasVars=false;
 	}
 	| LBRACE localvardecs RBRACE {
 		$$=new Node($2);
 		$$->set("<block> -> LBRACE <localVarDeclaration>+ RBRACE");
 		$$=errorCheck($$);
+		hasVars=false;
 	}
 	| LBRACE stmts RBRACE {
 		$$=new Node($2);
@@ -436,8 +442,16 @@ localvardecs: localvardecs localvardec {
 		else {
 			p->setNext($2);
 		}
+    current->insert(value, new Entry(value, typeTable->lookup(typeValue)));
 	}
 	| localvardec {
+	  if(current) {
+      current=new SymbolTable(current);
+	  }
+	  else {
+      current=sub;
+	  }
+    current->insert(value, new Entry(value, typeTable->lookup(typeValue)));
 		$$=$1;
 	}
 ;
@@ -445,6 +459,7 @@ localvardec: type id SEMI {
 		$$=new Node($1, $2);
 		$$->set("<localVarDeclaration> -> <type> ID SEMI");
 		$$=errorCheck($$);
+	  hasVars=true;
 	}
 	| type id error {
 		printError("Expected \';\'");
@@ -469,6 +484,7 @@ stmts: stmts stmt {
 		$$=$1;
 	}
 ;
+//NEED TO SOMEHOW GET CURRENT UPDATED FOR THE stmt BLOCKS
 stmt: SEMI {
 		$$=new Node();
 		$$->set("<statement> -> SEMI");
@@ -507,6 +523,17 @@ stmt: SEMI {
 		$$=new Node($1);
 		$$->set("<statement> -> <block>");
 		$$=errorCheck($$);
+		if(current) {
+      if(sub!=current) {
+        string tmp="#block_"+to_string(current->parent->blockCount++);
+        current->id=tmp;
+        current->parent->insert(tmp, current);
+        current=current->parent;
+      }
+		}
+		else {
+      current=sub;
+		}
 	}
 	| error LPAREN arglst RPAREN SEMI {
 		printError("Expected \'print\'");
