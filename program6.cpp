@@ -66,7 +66,18 @@ int main() {
   yyparse();
   //tree->print(); //not needed after program4
   //cout<<endl;
-  //root->print();
-  typeTable->print(ind);
+  //cout<<endl;
+  cout<<endl;
+  //typeTable->print(ind);
+  if(tree) {
+    tree->typeCheck();
+    if(!(tree->error)) {
+      typeTable->print(ind);
+    }
+  }
+  else {
+    //no tree was made, but print the int, void and null
+    typeTable->print(ind);
+  }
   return 0;
 }

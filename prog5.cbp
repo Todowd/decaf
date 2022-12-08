@@ -3,6 +3,7 @@
 	<FileVersion major="1" minor="6" />
 	<Project>
 		<Option title="prog5" />
+		<Option makefile="makefile" />
 		<Option pch_mode="2" />
 		<Option compiler="gcc" />
 		<Build>
@@ -34,15 +35,33 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
+		<Unit filename="Entry.cpp" />
+		<Unit filename="Entry.hpp" />
+		<Unit filename="SymbolTable.cpp" />
+		<Unit filename="SymbolTable.hpp" />
+		<Unit filename="Type.cpp" />
+		<Unit filename="Type.hpp" />
+		<Unit filename="main.cpp">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
 		<Unit filename="nodes.cpp" />
 		<Unit filename="nodes.hpp" />
-		<Unit filename="program5.cpp" />
-		<Unit filename="program5.hpp" />
-		<Unit filename="program5.lpp" />
-		<Unit filename="program5.ypp" />
+		<Unit filename="program6.cpp">
+			<Option compile="0" />
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="program6.hpp">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="program6.lpp">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="program6.ypp">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
 		<Unit filename="test.decaf">
-			<Option compile="1" />
 			<Option link="1" />
+			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
 		<Extensions>
 			<lib_finder disable_auto="1" />

@@ -106,11 +106,13 @@ Node* errorCheck(Node* n) {
 
 program: classdec {
 		tree=new Node($1);
+		tree->type="program";
 		tree->set("<program> -> <classDeclaration>");
 		$$=errorCheck($$);
 	}
 	| program classdec {
 		$1->setNext(new Node($2));
+		$1->getNext()->type="program";
 		$1->getNext()->set("<program> -> <program> <classDec>");
 		$$=errorCheck($$);
 	}
@@ -132,6 +134,8 @@ classdec: classstart classbody {
 classstart: CLASS id LBRACE {
 		$$=new Node($2);
 		$$->set("<classDeclaration> -> CLASS ID <classBody>");
+		$$->type="class";
+		$$->name=value;
 		$$=errorCheck($$);
 		table=typeTable->lookup(value);
 		sub=new SymbolTable(table);
@@ -160,6 +164,7 @@ classbody: RBRACE {
 		$$=new Node();
 		$$->set("<classBody> -> LBRACE RBRACE");
 		$$=errorCheck($$);
+		$$->name="empty";
 		table=table->parent;
 	}
 	| vardecs constructdecs methoddecs RBRACE {
@@ -167,6 +172,7 @@ classbody: RBRACE {
 		string str="<classBody> -> LBRACE <varDeclaration> ";
 		str+="<constructorDeclaration> <MethodDeclaration> RBRACE";
 		$$->set(str);
+		$$->name="VCM";
 		$$=errorCheck($$);
 		table=table->parent;
 	}
@@ -175,6 +181,7 @@ classbody: RBRACE {
 		string str="<classBody> -> LBRACE ";
 		str+="<constructorDeclaration> <MethodDeclaration> RBRACE";
 		$$->set(str);
+		$$->name="CM";
 		$$=errorCheck($$);
 		table=table->parent;
 	}
@@ -183,6 +190,7 @@ classbody: RBRACE {
 		string str="<classBody> -> LBRACE <varDeclaration>";
 		str+=" <MethodDeclaration> RBRACE";
 		$$->set(str);
+		$$->name="VM";
 		$$=errorCheck($$);
 		table=table->parent;
 	}
@@ -191,24 +199,28 @@ classbody: RBRACE {
 		string str="<classBody> -> LBRACE <varDeclaration> ";
 		str+="<constructorDeclaration> RBRACE";
 		$$->set(str);
+		$$->name="VC";
 		$$=errorCheck($$);
 		table=table->parent;
 	}
 	| vardecs RBRACE {
 		$$=new Node($1);
 		$$->set("<classBody> -> LBRACE <varDeclaration> RBRACE");
-		$$=errorCheck($$);
+		$$->name="V";
+		$$=errorCheck($$);;
 		table=table->parent;
 	}
 	| constructdecs RBRACE {
 		$$=new Node($1);
 		$$->set("<classBody> -> LBRACE <constructorDeclaration> RBRACE");
+		$$->name="C";
 		$$=errorCheck($$);
 		table=table->parent;
 	}
 	| methoddecs RBRACE {
 		$$=new Node($1);
 		$$->set("<classBody> -> LBRACE <MethodDeclaration> RBRACE");
+		$$->name="M";
 		$$=errorCheck($$);
 		table=table->parent;
 	}
@@ -236,6 +248,7 @@ vardec: type id SEMI {
     SymbolTable* tmp=typeTable->lookup(typeValue);
     symbol=new Entry(value, tmp);
     table->insert(value, symbol);
+    $$->type="vardec";
 		$$=errorCheck($$);
 	}
   | type multibrackets id SEMI {
@@ -252,6 +265,7 @@ vardec: type id SEMI {
     symbol=new Entry(value, tmp, count);
     count=0;
     table->insert(value, symbol);
+    $$->type="vardec_array";
 		$$=errorCheck($$);
 	}
 ;
@@ -278,6 +292,7 @@ constructdec: id LPAREN paramlist block {
 		string str="<constructorDeclaration> -> ID LPAREN <paramList> RPAREN";
 		str+=" <block>";
 		$$->set(str);
+		$$->name="const";
 		$$=errorCheck($$);
 		str=$1->name;
 		sub->id=str;
@@ -312,6 +327,7 @@ methoddec: type constructdec {
 		string str="<methodDeclaration> -> <resultType> ID LPAREN <paramList>";
 		str+=" RPAREN <block>";
 		$$->set(str);
+		$$->name="method";
 		$$=errorCheck($$);
 		//doesnt matter what return type is for the sub->id as only one method with
 		//those same params can exist
@@ -336,6 +352,7 @@ methoddec: type constructdec {
 		str="<methodDeclaration> -> <resultType> ID LPAREN <paramList>";
 		str+=" RPAREN <block>";
 		$$->set(str);
+		$$->type="method";
 		$$=errorCheck($$);
 		//doesnt matter what return type is for the sub->id as only one method with
 		//those same params can exist
@@ -390,24 +407,29 @@ param: type id {
 		$$=errorCheck($$);
 		value+="#parameter_";
 		value+=to_string(paramCount++);
+		$$->type=typeValue;
+		$$->name=value;
 		sub->insert(value, new Entry(value, typeTable->lookup(typeValue)));
 	}
 ;
 
 block: LBRACE localvardecs stmts RBRACE {
 		$$=new Node($2, $3);
+		$$->type="localvardecs_stmts";
 		$$->set("<block> -> LBRACE <localVarDeclaration>+ <statement>+ RBRACE");
 		$$=errorCheck($$);
 		hasVars=false;
 	}
 	| LBRACE localvardecs RBRACE {
 		$$=new Node($2);
+		$$->type="localvardecs";
 		$$->set("<block> -> LBRACE <localVarDeclaration>+ RBRACE");
 		$$=errorCheck($$);
 		hasVars=false;
 	}
 	| LBRACE stmts RBRACE {
 		$$=new Node($2);
+		$$->type="stmts";
 		$$->set("<block> -> LBRACE <statement>+ RBRACE");
 		$$=errorCheck($$);
 	}
@@ -457,6 +479,7 @@ localvardecs: localvardecs localvardec {
 ;
 localvardec: type id SEMI {
 		$$=new Node($1, $2);
+		$$->type="localvardec";
 		$$->set("<localVarDeclaration> -> <type> ID SEMI");
 		$$=errorCheck($$);
 	  hasVars=true;
@@ -491,36 +514,43 @@ stmt: SEMI {
 	}
 	| name ASSIGN exp SEMI {
 		$$=new Node($1, $3);
+		$$->type="assign";
 		$$->set("<statement> -> <name> ASSIGN <expression> SEMI");
 		$$=errorCheck($$);
 	}
 	| name LPAREN arglst RPAREN {
 		$$=new Node($1, $3);
+		$$->type="function_call";
 		$$->set("<statement> -> <name> LPAREN <argList> SEMI");
 		$$=errorCheck($$);
 	}
 	| PRINT LPAREN arglst RPAREN SEMI {
 		$$=new Node($3);
+		$$->type="print";
 		$$->set("<statement> -> PRINT LPAREN <arglst> RPAREN");
 		$$=errorCheck($$);
 	}
 	| cndtlstmt {
 		$$=new Node($1);
+		$$->type="cndtlstmt";
 		$$->set("<statement> -> <conditionalStatement>");
 		$$=errorCheck($$);
 	}
 	| WHILE LPAREN exp RPAREN stmt {
 		$$=new Node($3, $5);
+		$$->type="while";
 		$$->set("<statement> -> WHILE LPAREN <expression> RPAREN <statement>");
 		$$=errorCheck($$);
 	}
 	| RETURN optlexp SEMI {
 		$$=new Node($2);
+		$$->type="return";
 		$$->set("<statement> -> RETURN <optionalStatement> SEMI");
 		$$=errorCheck($$);
 	}
 	| block {
 		$$=new Node($1);
+		$$->type="block";
 		$$->set("<statement> -> <block>");
 		$$=errorCheck($$);
 		if(current) {
@@ -564,19 +594,31 @@ stmt: SEMI {
 name: THIS {
 		$$=new Node();
 		$$->set("<name> -> THIS");
+		$$->name="this";
 	}
 	| id {
 		$$=new Node($1);
 		$$->set("<name> -> ID");
+		$$->name=value;
 		$$=errorCheck($$);
 	}
 	| name DOT id {
-		$$=new Node($1, $3);
-		$$->set("<name> -> <name> DOT ID");
+	  if($3->name=="this") {
+      printError("invalid use of 'this'");
+      $$=new NodeERROR();
+	  }
+	  else {
+      $$=new Node($1, $3);
+      $$->set("<name> -> <name> DOT ID");
+      $$->name=$3->name;
+      $$->type="dot";
+      //if want to add class type use sub->id (and substr to get rid of #)
+	  }
 		$$=errorCheck($$);
 	}
 	| name LBRACK exp RBRACK {
 		$$=new Node($1, $3);
+		$$->type="array_access";
 		$$->set("<name> -> <name> LBRACK <expression> RBRACK");
 		$$=errorCheck($$);
 	}
@@ -596,9 +638,11 @@ name: THIS {
 
 arglst: arglst2 {
 		$$=$1;
+		$$->type="arglst";
 	}
 	| %empty {
 		$$=new Node();
+		$$->type="arglst";
 		$$->set("<argList> -> EMPTYSTRING");
 	}
 ;
@@ -632,10 +676,12 @@ cndtlstmt: IF LPAREN exp RPAREN stmt {
 		$$=new Node($3, $5);
 		string str="<conditionalStatement> -> IF LPAREN <expression> RPAREN";
 		$$->set(str+" <statement>");
+		$$->type="if";
 		$$=errorCheck($$);
 	}
 	| IF LPAREN exp RPAREN stmt ELSE stmt {
 		$$=new Node($3, $7, $5);
+		$$->type="if_else";
 		string str="<conditionalStatement> -> IF LPAREN <expression> RPAREN";
 		$$->set(str+" <statement> ELSE <statement>");
 		$$=errorCheck($$);
@@ -654,6 +700,7 @@ optlexp: %empty {
 	}
 	| exp {
 		$$=new Node($1);
+		$$->type="exp";
 		$$->set("<optionalExpression -> <exp>");
 		$$=errorCheck($$);
 	}
@@ -662,34 +709,40 @@ optlexp: %empty {
 newexp: NEW id LPAREN arglst RPAREN {
 		$$=new Node($2, $4);
 		$$->set("<newExpression> -> NEW ID LPAREN <argList> RPAREN");
+		$$->type="new_obj";
 		$$=errorCheck($$);
 	}
 	| NEW INTTYPE {
 		$$=new Node();
 		$$->set("<newExpression> -> NEW <simpleType>");
+		$$->type="new_int";
 		$$=errorCheck($$);
 	}
 	| NEW INTTYPE bracketexps {
 		$$=new Node($3);
 		string str="<newExpression> -> NEW <simpleType> <LBRACK ";
 		$$->set(str+"<expression> RBRACK>+");
-
+		$$->type="new_int_array";
 		$$=errorCheck($$);
 	}
 	| NEW id bracketexps {
 		$$=new Node($2, $3);
 		string str="<newExpression> -> NEW <simpleType> <LBRACK ";
 		$$->set(str+"<expression> RBRACK>+");
+		$$->type="new_obj_array_exp";
 		$$=errorCheck($$);
 	}
 	| NEW INTTYPE bracketexps multibrackets {
 		$$=new Node($3, $4);
 		$$->set("<newExpression> -> NEW <simpleType> ");
+		$$->type="new_int_array_exp_brackets";
 		$$=errorCheck($$);
 	}
 	| NEW id bracketexps multibrackets {
 		$$=new Node($3, $2, $4);
 		$$->set("<newExpression> -> NEW <simpleType> ");
+		$$->type="new_obj_array_exp_brackets";
+		$$->name=$2->name;
 		$$=errorCheck($$);
 	}
 	| error id LPAREN arglst RPAREN {
@@ -721,6 +774,7 @@ bracketexps: bracketexps bracketexp {
 ;
 bracketexp: LBRACK exp RBRACK {
 		$$=new NodeNOSPACE($2);
+		$$->type="array_addressing";
 		$$->set("<LBRACK <exp> RBRACK>");
 		$$=errorCheck($$);
 	}
@@ -746,6 +800,7 @@ multibrackets: multibrackets multibracket {
 ;
 multibracket: LBRACK RBRACK {
 		$$=new NodeNOSPACE();
+		$$->type="brackets";
 		$$->set("<LBRACK RBRACK>");
 		$$=errorCheck($$);
 	}
@@ -754,113 +809,140 @@ multibracket: LBRACK RBRACK {
 exp: name {
 		$$=new Node($1);
 		$$->set("<exp> -> <name>");
+		$$->type="name";
+		$$->name=$1->name;
 		$$=errorCheck($$);
 	}
 	| INT {
 		const char* tmp=scanner.YYText();
 		$$=new Node(new NodeINT(atoi(tmp)));
 		$$->set("<exp> -> NUMBER");
+		string tmp2=tmp;
+		$$->name=tmp2;
+		$$->type="inttype";
 		$$=errorCheck($$);
 	}
 	| NUL {
 			$$=new Node();
+			$$->type="null";
 			$$->set("<exp> -> null");
 		}
 	| READ LPAREN RPAREN {
 			$$=new Node();
+			$$->name="read";
 			$$->set("<exp> -> READ LPAREN RPAREN");
 		}
 	| name LPAREN arglst RPAREN {
 		$$=new Node($1, $3);
+		$$->type="function_call";
+		$$->name=$1->name;
 		$$->set("<expression> -> <name> LPAREN <argList> RPAREN");
 		$$=errorCheck($$);
 	}
 	| newexp {
 		$$=new Node($1);
+		$$->type="new_expr";
 		$$->set("<expression> -> <newExpression>");
 		$$=errorCheck($$);
 	}
 	| MINUS exp %prec UMINUS{
 		$$=new Node($2);
+		$$->type="decrement";
 		$$->set("<expression> -> MINUS <expression>");
 		$$=errorCheck($$);
 	}
 	| PLUS exp %prec UMINUS{
 		$$=new Node($2);
+		$$->type="increment";
 		$$->set("<expression> -> PLUS <expression>");
 		$$=errorCheck($$);
 	}
 	| NOT exp %prec UMINUS {
 		$$=new Node($2);
+		$$->type="not";
 		$$->set("<expression> -> NOT <expression>");
 		$$=errorCheck($$);
 	}
 	| exp NEQ exp {
+		$$->type="NEQ";
 		$$=new Node($1, $3);
 		$$->set("<expression> -> <expression> NEQ <expression>");
 		$$=errorCheck($$);
 	}
 	| exp EQ exp {
 		$$=new Node($1, $3);
+		$$->type="decrement";
 		$$->set("<expression> -> <expression> EQ <expression>");
 		$$=errorCheck($$);
 	}
 	| exp LEQ exp {
 		$$=new Node($1, $3);
+		$$->type="leq";
 		$$->set("<expression> -> <expression> LEQ <expression>");
 		$$=errorCheck($$);
 	}
 	| exp GEQ exp {
 		$$=new Node($1, $3);
+		$$->type="geq";
 		$$->set("<expression> -> <expression> GEQ <expression>");
 		$$=errorCheck($$);
 	}
 	| exp LT exp {
 		$$=new Node($1, $3);
+		$$->type="lt";
 		$$->set("<expression> -> <expression> LT <expression>");
 		$$=errorCheck($$);
 	}
 	| exp GT exp {
 		$$=new Node($1, $3);
+		$$->type="gt";
 		$$->set("<expression> -> <expression> GT <expression>");
 		$$=errorCheck($$);
 	}
 	| exp AND exp {
 		$$=new Node($1, $3);
+		$$->type="and";
 		$$->set("<expression> -> <expression> AND <expression>");
 		$$=errorCheck($$);
 	}
 	| exp OR exp {
 		$$=new Node($1, $3);
+		$$->type="or";
 		$$->set("<expression> -> <expression> OR <expression>");
 		$$=errorCheck($$);
 	}
 	| exp PLUS exp {
 		$$=new Node($1, $3);
+		$$->type="plus";
 		$$->set("<expression> -> <expression> PLUS <expression>");
 		$$=errorCheck($$);
 	}
 	| exp MINUS exp {
 		$$=new Node($1, $3);
+		$$->type="minus";
 		$$->set("<expression> -> <expression> MINUS <expression>");
 		$$=errorCheck($$);
 	}
 	| exp TIMES exp {
 		$$=new Node($1, $3);
+		$$->type="times";
 		$$->set("<expression> -> <expression> TIMES <expression>");
 		$$=errorCheck($$);
 	}
 	| exp DIV exp {
+		$$->type="div";
 		$$=new Node($1, $3);
 		$$->set("<expression> -> <expression> DIV <expression>");
 		$$=errorCheck($$);
 	}
 	| exp MOD exp {
+		$$->type="mod";
 		$$=new Node($1, $3);
 		$$->set("<expression> -> <expression> MOD <expression>");
 		$$=errorCheck($$);
 	}
 	| LPAREN exp RPAREN {
+		$$->type="enclosed_exp";
 		$$=new Node($2);
 		$$->set("<exp> -> ( <exp> )");
 		$$=errorCheck($$);
@@ -871,23 +953,16 @@ type: INTTYPE {
 		$$=new Node();
 		$$->set("<type> -> INT");
 		typeValue="int";
+		$$->type="int";
 		$$->name=typeValue;
 		$$=errorCheck($$);
 	}
   | id {
 		$$=new Node($1);
+		$$->type=value;
 		$$=errorCheck($$);
 		typeValue=value;
 		$$->name=typeValue;
-		/*
-		SymbolTable* tmp=typeTable->lookup(typeValue);
-		//we havent come across this class yet
-    if(tmp==nullptr) {
-      tmp=new SymbolTable(nullptr);
-      tmp->id=typeValue;
-      typeTable->insert(value, tmp);
-    }
-    */
 	}
 ;
 

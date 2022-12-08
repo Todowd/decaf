@@ -31,6 +31,10 @@ bool Type::insert(string str, SymbolTable* sym) {
   return true;
 }
 
+bool Type::exists(string str) {
+  return lookup(str)->declared;
+}
+
 SymbolTable* Type::lookup(string str) {
   unordered_map<string, SymbolTable*>::const_iterator it=types.find(str);
   if(it==types.end()) {

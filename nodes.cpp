@@ -6,19 +6,28 @@ Tyler O'Dowd
 
 Nodes that make up the syntax tree
 */
+#include "nodes.hpp"
+#include "SymbolTable.hpp"
+#include "Type.hpp"
+
 #include<iostream>
 using std::cout;
+using std::cerr;
 using std::endl;
 
-#include "nodes.hpp"
+#include<string>
+using std::string;
+using std::to_string;
 
 extern int ind;
+extern Type* typeTable;
 
 Node::Node(Node* Left, Node* Right, Node* Mid, Node* Last):
 i(0), left(Left), right(Right), mid(Mid), last(Last) {
   next=nullptr;
   err=false;
   name="";
+  error=false;
   reset();
 }
 Node::~Node() {
@@ -34,6 +43,123 @@ Node::~Node() {
   if(last) {
     delete last;
   }
+}
+void Node::printError(string msg, string line) {
+	cerr<<msg<<", line"<<myline<<": "<<line<<endl;
+	for(int i=0; i<(mycol+msg.length()+to_string(myline).length()+8); i++) {
+    cerr<<" ";
+	}
+	cerr<<"^"<<endl;
+	//cerr<<msg<<", line"<<myline<<": "<<line<<endl;
+}
+bool Node::typeCheck() {
+  bool er=false;
+  if(type=="program") {
+    //n is program
+    Node* n=this;
+    do {
+      //table->declared has to be true, were going through it right now
+      //and obviously it must exist too for the same reason
+      //search is classdec
+      Node* search=n->getLeft();
+      string name=search->name;
+      SymbolTable* table=typeTable->lookup(name);
+      search=search->getRight();
+      if(search) {
+        //has no vardecs, constructors or methods
+        if(search->name=="empty") {
+          return error;
+        }
+        for(int i=0; i<search->name.length(); i++) {
+          //search vardecs
+          Node* p;
+          if(i==0) {
+            p=search->getLeft();
+          }
+          else if(i==1) {
+            p=search->getMid();
+          }
+          else {
+            p=search->getRight();
+          }
+          if((search->name[i])=='V') {
+            er=(error||typeCheckVars(p, table));
+          }
+          //search constructors
+          else if((search->name[i])=='C') {
+            er=(error||typeCheckConsts(p, table));
+          }
+          //search methods
+          else if((search->name[i])=='M') {
+            er=(error||typeCheckMethods(p, table));
+          }
+          else {
+            //how the heck???
+            printError("unknown error", name);
+            error=true;
+          }
+        }
+      }
+    } while(n->next);
+  }
+  else if(type=="block") {
+
+  }
+  return (error||er);
+}
+bool Node::typeCheckVars(Node* vars, SymbolTable* table) {
+  bool error=false;
+  do {
+    //check if valid type
+    error=(error||typeCheckVar(vars, table));
+    vars=vars->next;
+  } while(vars);
+  return error;
+}
+bool Node::typeCheckVar(Node* var, SymbolTable* table) {
+    string type=var->getLeft()->name;
+    string name=var->getRight()->name;
+    //same thing as !table->lookup(type)->declared
+    if(!typeTable->exists(type)) {
+      var->error=true;
+      type+=" ";
+      type+=name;
+      type+=";";
+      printError("unexpected type", type);
+    }
+    else if(checkValidVarType(type)) {
+      var->error=true;
+      type+=" "+name+";";
+      printError("invalid l-value", type);
+    }
+    else if(
+      (table->exists(name))//does it exist only in our current symbol table?
+      &&(table->lookup(name)->id!=type) //does the type match?
+      //&&(!table->lookup(name)->declared) //still need to check if it exists in this scope
+    ) {
+      var->error=true;
+      type+=" ";
+      type+=name;
+      type+=";";
+      name+=" already declared";
+      printError(name, type);
+    }
+    return var->error;
+}
+bool Node::checkValidVarType(string str) {
+  if(str=="null") {
+    return true;
+  }
+  else if(str=="void") {
+    return true;
+  }
+  return false;
+}
+bool Node::typeCheckConsts(Node* consts, SymbolTable* table) {
+  return error;
+}
+bool Node::typeCheckMethods(Node* methods, SymbolTable* table) {
+  return error;
 }
 int Node::getInt() const {
   return i;

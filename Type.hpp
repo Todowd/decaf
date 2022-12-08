@@ -25,6 +25,7 @@ class Type {
     bool insert(string str, SymbolTable* sym);
     SymbolTable* lookup(string str);
     void print(int n);
+    bool exists(string str);
   private:
     unordered_map<string, SymbolTable*> types;
     void indent(int n);

@@ -47,7 +47,11 @@ class Node {
     bool isErr();
 
     string name;
+    string type;
     SymbolTable* block;
+    bool error;
+    void printError(string msg, string line);
+    virtual bool typeCheck();
 
   protected:
     int myline;
@@ -60,6 +64,11 @@ class Node {
     Node* mid;
     Node* last;
     bool err;
+    virtual bool typeCheckVars(Node* vars, SymbolTable* table);
+    virtual bool typeCheckVar(Node* vars, SymbolTable* table);
+    virtual bool typeCheckConsts(Node* consts, SymbolTable* table);
+    virtual bool typeCheckMethods(Node* methods, SymbolTable* table);
+    virtual bool checkValidVarType(string str);
 };
 
 class NodeINT: public Node {
