@@ -142,6 +142,7 @@ classstart: CLASS id LBRACE {
 		current=nullptr;
     if(table->declared) {
       printError(value+" already defined");
+      typeTable->error=true;
 		}
 		else {
       table->declared=true;
@@ -247,7 +248,12 @@ vardec: type id SEMI {
 		$$->set("<varDeclaration> -> <type> ID SEMI");
     SymbolTable* tmp=typeTable->lookup(typeValue);
     symbol=new Entry(value, tmp);
-    table->insert(value, symbol);
+    if(!table->insert(value, symbol)) {
+      string tmp=sub->id.substr(0, sub->id.find("#", 0));
+      tmp+=" already defined";
+      printError(tmp);
+      $$->error=true;
+    }
     $$->type="vardec";
 		$$=errorCheck($$);
 	}
@@ -264,7 +270,12 @@ vardec: type id SEMI {
     */
     symbol=new Entry(value, tmp, count);
     count=0;
-    table->insert(value, symbol);
+    if(!table->insert(value, symbol)) {
+      string tmp=sub->id.substr(0, sub->id.find("#", 0));
+      tmp+=" already defined";
+      $$->error=true;
+      printError(tmp);
+    }
     $$->type="vardec_array";
 		$$=errorCheck($$);
 	}
@@ -274,7 +285,13 @@ constructdecs: constructdecs constructdec {
 		$1->setNext($2);
 		sub->id+="#const";
 		sub->addParamToName();
-		table->insert(sub->id, sub);
+		if(!table->insert(sub->id, sub)) {
+      string tmp=sub->id.substr(0, sub->id.find("#", 0));
+      tmp+=" already defined";
+      printError(tmp);
+      $$->error=true;
+		}
+		$2->name=sub->id;
 		//setup for the next constructor
 		sub=new SymbolTable(table);
 	}
@@ -282,7 +299,13 @@ constructdecs: constructdecs constructdec {
 		$$=$1;
 		sub->id+="#const";
 		sub->addParamToName();
-		table->insert(sub->id, sub);
+		if(!table->insert(sub->id, sub)) {
+      string tmp=sub->id.substr(0, sub->id.find("#", 0));
+      tmp+=" already defined";
+      printError(tmp);
+      $$->error=true;
+		}
+		$$->name=sub->id;
 		//setup for the next constructor
 		sub=new SymbolTable(table);
 	}
@@ -292,9 +315,10 @@ constructdec: id LPAREN paramlist block {
 		string str="<constructorDeclaration> -> ID LPAREN <paramList> RPAREN";
 		str+=" <block>";
 		$$->set(str);
-		$$->name="const";
+		$$->type="const";
 		$$=errorCheck($$);
 		str=$1->name;
+		$$->name=str;
 		sub->id=str;
 		sub->declared=true;
 		sub->value=paramCount;
@@ -327,14 +351,20 @@ methoddec: type constructdec {
 		string str="<methodDeclaration> -> <resultType> ID LPAREN <paramList>";
 		str+=" RPAREN <block>";
 		$$->set(str);
-		$$->name="method";
+		//$$->name="method";
 		$$=errorCheck($$);
 		//doesnt matter what return type is for the sub->id as only one method with
 		//those same params can exist
 		sub->returnType=typeTable->lookup($1->name);
 		sub->id+="#method";
 		sub->addParamToName();
-		table->insert(sub->id, sub);
+    if(!table->insert(sub->id, sub)) {
+      /*string tmp=sub->id.substr(0, sub->id.find("#", 0));
+      tmp+=" already defined";
+      printError(tmp);*/
+      $$->error=true;
+    }
+    $$->name=sub->id;
 		//setup for the next method
 		sub=new SymbolTable(table);
   }
@@ -344,6 +374,7 @@ methoddec: type constructdec {
 		Node* mid=$$->getMid();
 		Node* right=$$->getRight();
 		$$->setLeft(new Node());
+		$$->getLeft()->type="void";
 		string str="<resultType> -> VOID";
 		$$->getLeft()->set(str);
 		$$->setMid(left);
@@ -359,7 +390,13 @@ methoddec: type constructdec {
 		sub->returnType=typeTable->lookup("void");
 		sub->id+="#method";
 		sub->addParamToName();
-		table->insert(sub->id, sub);
+    if(!table->insert(sub->id, sub)) {
+      /*string tmp=sub->id.substr(0, sub->id.find("#", 0));
+      tmp+=" already defined";
+      printError(tmp);*/
+      $$->error=true;
+    }
+    $$->name=sub->id;
 		//setup for the next method
 		sub=new SymbolTable(table);
   }
@@ -370,6 +407,7 @@ paramlist: paramlist2 RPAREN {
 	}
 	| RPAREN {
 		$$=new Node();
+		$$->type="empty";
 		$$->set("<parameterList> -> EMPTYSTRING");
 	}
 ;
@@ -409,7 +447,13 @@ param: type id {
 		value+=to_string(paramCount++);
 		$$->type=typeValue;
 		$$->name=value;
-		sub->insert(value, new Entry(value, typeTable->lookup(typeValue)));
+		bool v=sub->insert(value, new Entry(value, typeTable->lookup(typeValue)));
+    if(!v) {
+      string tmp=value;
+      tmp+=" already defined";
+      printError(tmp);
+      $$->error=true;
+    }
 	}
 ;
 
@@ -464,7 +508,16 @@ localvardecs: localvardecs localvardec {
 		else {
 			p->setNext($2);
 		}
-    current->insert(value, new Entry(value, typeTable->lookup(typeValue)));
+    bool v=current->insert(
+      value,
+      new Entry(value, typeTable->lookup(typeValue))
+    );
+    if(!v) {
+      string tmp=value;
+      tmp+=" already defined";
+      printError(tmp);
+      $$->error=true;
+    }
 	}
 	| localvardec {
 	  if(current) {
@@ -473,7 +526,16 @@ localvardecs: localvardecs localvardec {
 	  else {
       current=sub;
 	  }
-    current->insert(value, new Entry(value, typeTable->lookup(typeValue)));
+    bool v=current->insert(
+      value,
+      new Entry(value, typeTable->lookup(typeValue))
+    );
+    if(!v) {
+      string tmp=value;
+      tmp+=" already defined";
+      printError(tmp);
+      $$->error=true;
+    }
 		$$=$1;
 	}
 ;

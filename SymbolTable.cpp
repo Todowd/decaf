@@ -140,6 +140,8 @@ void SymbolTable::print(int n) {
       else {
         f=it->second->id.find("#method", 0);
         cout<<it->second->id.substr(0, f)<<": Method: ";
+        //print return type
+        cout<<it->second->returnType->id<<" ";/*
         //determine if has parameters
         if(it->second->id.find("_", f)!=it->second->id.npos) {
           //get only the params
@@ -153,7 +155,7 @@ void SymbolTable::print(int n) {
             cout<<tmp.substr(1, helper-1)<<" ";
             tmp=tmp.substr(helper, tmp.npos);
           }
-        }
+        }*/
         //print the param count
         cout<<"<-- "<<it->second->value<<endl;
       }

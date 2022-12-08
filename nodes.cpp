@@ -46,7 +46,7 @@ Node::~Node() {
 }
 void Node::printError(string msg, string line) {
 	cerr<<msg<<", line"<<myline<<": "<<line<<endl;
-	for(int i=0; i<(mycol+msg.length()+to_string(myline).length()+8); i++) {
+	for(int i=0; i<(mycol+msg.length()+to_string(myline).length()+9); i++) {
     cerr<<" ";
 	}
 	cerr<<"^"<<endl;
@@ -70,37 +70,39 @@ bool Node::typeCheck() {
         if(search->name=="empty") {
           return error;
         }
-        for(int i=0; i<search->name.length(); i++) {
-          //search vardecs
-          Node* p;
-          if(i==0) {
-            p=search->getLeft();
+        //if theres a mid, then it has all three
+        else if(search->getMid()) {
+          er=(error||typeCheckVars(search->getLeft(), table));
+          er=(error||typeCheckConsts(search->getMid(), table));
+          er=(error||typeCheckMethods(search->getRight(), table));
+        }
+        //there will be a left at this point whether there are one or two nodes
+        else {
+          if(search->name[0]=='V') {
+            er=(error||typeCheckVars(search->getLeft(), table));
           }
-          else if(i==1) {
-            p=search->getMid();
-          }
-          else {
-            p=search->getRight();
-          }
-          if((search->name[i])=='V') {
-            er=(error||typeCheckVars(p, table));
-          }
-          //search constructors
-          else if((search->name[i])=='C') {
-            er=(error||typeCheckConsts(p, table));
-          }
-          //search methods
-          else if((search->name[i])=='M') {
-            er=(error||typeCheckMethods(p, table));
+          else if(search->name[0]=='C') {
+            er=(error||typeCheckConsts(search->getLeft(), table));
           }
           else {
-            //how the heck???
-            printError("unknown error", name);
-            error=true;
+            er=(error||typeCheckMethods(search->getLeft(), table));
+          }
+          //just need the right nodes now
+          if(search->name.length()==2) {
+            if(search->name[1]=='V') {
+              er=(error||typeCheckVars(search->getRight(), table));
+            }
+            else if(search->name[1]=='C') {
+              er=(error||typeCheckConsts(search->getRight(), table));
+            }
+            else {
+              er=(error||typeCheckMethods(search->getRight(), table));
+            }
           }
         }
       }
-    } while(n->next);
+      n=n->getNext();
+    } while(n);
   }
   else if(type=="block") {
 
@@ -156,10 +158,81 @@ bool Node::checkValidVarType(string str) {
   return false;
 }
 bool Node::typeCheckConsts(Node* consts, SymbolTable* table) {
-  return error;
+  bool err=consts->error;
+  //check the constructor name matches the class type
+  string name=consts->name;
+  Node* params=consts->getMid()->getLeft();
+cerr<<table->id<<name<<endl;
+  if(name.substr(0, name.find("#", 0))!=table->id) {
+    printError("unexpected method", constLine(consts));
+  }
+  table=table->lookup(name);
+  //check params
+  if(consts->getMid()->type!="empty") {
+    err=(err||params->error||typeCheckVars(params, table));
+  }
+  //constructor name does repeat, checked in parser
+  //check rest of constructor block
+
+  //THIS NEEDS TO BE FIXED!!!!
+  //NEEDS FIX
+
+  //consts->getRight()->block=table;//just incase it wasnt already
+  return err;//(err||consts->getRight()->typeCheck());
+}
+string Node::constLine(Node* f) {
+  string name=f->getLeft()->name;
+  name=name.substr(0, name.find("#", 0));
+  name+="(";
+  Node* n=f->getMid();
+  if(n->type!="empty") {
+    n=n->getLeft();
+    name+=n->type+" "+n->name;
+    while(n) {
+      n=n->getNext();
+      name+=", "+n->type+" "+n->name;
+    }
+  }
+  name+=")";
+  return name;
 }
 bool Node::typeCheckMethods(Node* methods, SymbolTable* table) {
-  return error;
+  bool err=false;
+  //check the return type exists
+  Node* n=methods->getLeft();
+  if(!typeTable->exists(n->type)) {
+    string tmp="unexpected type "+n->type;
+    printError(tmp, methodLine(methods));
+    methods->getLeft()->error=false;
+    err=true;
+  }
+  //we already know it exists, and wasnt doubled from parser
+  //check params
+  string name=methods->name;
+  Node* params=methods->getRight()->getLeft();
+  table=table->lookup(name);
+  //check params
+  if(methods->getRight()->type!="empty") {
+    err=(err||params->error||typeCheckVars(params, table));
+  }
+  return err;
+}
+string Node::methodLine(Node* f) {
+  string name=f->getLeft()->type;
+  name+=f->name;//name+=f->getMid()->name;
+  name=name.substr(0, name.find("#", 0));
+  name+="(";
+  Node* n=f->getRight();
+  if(n->type!="empty") {
+    n=n->getLeft();
+    name+=n->type+" "+n->name;
+    while(n) {
+      n=n->getNext();
+      name+=", "+n->type+" "+n->name;
+    }
+  }
+  name+=")";
+  return name;
 }
 int Node::getInt() const {
   return i;

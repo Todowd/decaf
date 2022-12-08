@@ -70,8 +70,8 @@ int main() {
   cout<<endl;
   //typeTable->print(ind);
   if(tree) {
-    tree->typeCheck();
-    if(!(tree->error)) {
+    bool errors=tree->typeCheck();
+    if(!errors) {
       typeTable->print(ind);
     }
   }

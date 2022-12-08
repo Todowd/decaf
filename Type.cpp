@@ -13,6 +13,7 @@ using std::cout;
 using std::endl;
 
 Type::Type() {
+  error=false;
 }
 
 Type::~Type() {
@@ -47,6 +48,9 @@ SymbolTable* Type::lookup(string str) {
 }
 
 void Type::print(int n) {
+  if(error) {
+    return;
+  }
   cout<<"Type Table:"<<endl;
   n++;
   for(auto it=types.begin(); it!=types.end(); it++) {

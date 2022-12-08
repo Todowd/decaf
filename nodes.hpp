@@ -69,6 +69,8 @@ class Node {
     virtual bool typeCheckConsts(Node* consts, SymbolTable* table);
     virtual bool typeCheckMethods(Node* methods, SymbolTable* table);
     virtual bool checkValidVarType(string str);
+    virtual string constLine(Node* f);
+    virtual string methodLine(Node* f);
 };
 
 class NodeINT: public Node {

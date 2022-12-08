@@ -26,6 +26,7 @@ class Type {
     SymbolTable* lookup(string str);
     void print(int n);
     bool exists(string str);
+    bool error;
   private:
     unordered_map<string, SymbolTable*> types;
     void indent(int n);
