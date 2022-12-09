@@ -36,6 +36,8 @@ Entry* symbol;
 Type* typeTable;
 string value;
 string typeValue;
+bool constructor;
+int mainCount;
 
 int main() {
   tree=nullptr;
@@ -62,6 +64,8 @@ int main() {
   typeTable->insert("null", table);
   table=nullptr;
 
+  mainCount=0;
+  constructor=false;
   ind=0;
   yyparse();
   //tree->print(); //not needed after program4

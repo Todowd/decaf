@@ -21,6 +21,8 @@ using std::to_string;
 
 extern int ind;
 extern Type* typeTable;
+extern bool constructor;
+extern int mainCount;
 
 Node::Node(Node* Left, Node* Right, Node* Mid, Node* Last):
 i(0), left(Left), right(Right), mid(Mid), last(Last) {
@@ -75,6 +77,11 @@ bool Node::typeCheck() {
       Node* search=n->getLeft();
       string name=search->name;
       SymbolTable* table=typeTable->lookup(name);
+      //how idk but sure
+      if(!table->declared) {
+        printError("unexpected type "+table->id, "class "+table->id+"{");
+        return true;
+      }
       search=search->getRight();
       if(search) {
         //has no vardecs, constructors or methods
@@ -184,6 +191,10 @@ bool Node::typeCheckConsts(Node* consts, SymbolTable* table) {
     printError("unexpected method", constLine(consts));
   }
   table=table->lookup(name);
+  if(!table->declared) {
+    printError("unexpected type", table->id);
+    return true;
+  }
   //check params
   if(consts->getMid()->type!="empty") {
     err=(err||params->error||typeCheckVars(params, table));
@@ -238,6 +249,10 @@ bool Node::typeCheckMethods(Node* methods, SymbolTable* table) {
   }
   Node* params=methods->getRight()->getLeft();
   table=table->lookup(name);
+  if(!table->declared) {
+    printError("unexpected type", table->id);
+    return true;
+  }
   //check params
   if(methods->getRight()->type!="empty") {
     err=(err||params->error||typeCheckVars(params, table));
@@ -269,9 +284,9 @@ bool Node::typeCheckBlock() {
   if(type=="empty") {
     return err;
   }
-  if(type=="localvardecs_stmts")||(type=="localvardecs")) {
+  if((type=="localvardecs_stmts")||(type=="localvardecs")) {
     //left is a localvardec
-    err=typeCheckVars(left, block)
+    err=typeCheckVars(left, block);
     //if right exists its the stmts
     if(right) {
       left->
@@ -286,9 +301,9 @@ bool Node::typeCheckBlock() {
 }
 bool Node::typeCheckStmts(SymbolTable* table) {
   bool err=false;
-  while(stmts) {
-    err=(err||stmt->typeCheckStmt(table));
-    stmts=stmts->getNext();
+  err=(err||typeCheckStmt(table));
+  if(next) {
+    err=(err||next->typeCheckStmts(table));
   }
   return err;
 }
@@ -305,26 +320,29 @@ bool Node::typeCheckStmt(SymbolTable* table) {
     if(tmp=="") {
       return true;
     }
-    SymbolTable* leftVal=left->table->lookup(tmp);
+    SymbolTable* leftVal=left->evalNameTable(table);
     SymbolTable* rightVal=right->evalExpResult(table);
     if(rightVal==nullptr) {
       printError("invalid expression", right->getExpLine());
       return true;
     }
+    if(leftVal==nullptr) {
+      return true;
+    }
     //if theyre of the same type then we should have the same SymbolTable's
     if(leftVal!=rightVal) {
       error=true;
-      string line=getNameLine(stmt->getLeft());
+      string line=left->getNameLine();
       line+="=";
-      line+=getExpLine(stmt->getRight());
+      line+=right->getExpLine();
       printError("Error mismatching types", line);
       return true;
     }
     if((rightVal->id=="void")||(rightVal->id=="int")) {
-      string line=getNameLine(stmt->getLeft());
+      string line=left->getNameLine();
       line+="=";
-      line+=getExpLine(stmt->getRight());
-      printError("invalid rvalue", line)
+      line+=right->getExpLine();
+      printError("invalid rvalue", line);
       return true;
     }
     return false;
@@ -340,12 +358,12 @@ bool Node::typeCheckStmt(SymbolTable* table) {
     if(typeTable->exists(str)) {
       str=left->getNameLine();
       str+="("+right->getArglistLine()+")";
-      printError("unexpected constructor", );
+      printError("unexpected constructor", str);
       return true;
     }
     str+="#"+right->argListTypes(table);
     SymbolTable* tmp=table->lookup(str);
-    if(!(tmp)) {
+    if((!(tmp))||(!tmp->declared)) {
       str=left->getNameLine();
       str+="("+right->getArglistLine()+")";
       printError("no matching method call", str);
@@ -399,7 +417,7 @@ bool Node::typeCheckStmt(SymbolTable* table) {
     //error, we can give it whatever exp. which makes sense from a c++ sense
     //anything thats not zero is true, but java must use booleans, and decaf
     //doesnt have any so Im just rolling with this for now
-    SymbolTable* tmp=left->evalExpResult();
+    SymbolTable* tmp=left->evalExpResult(table);
     if(!(tmp)) {
       string str="while("+left->getExpLine()+")";
       printError("invalid expression", str);
@@ -487,7 +505,7 @@ bool Node::typeCheckExp(SymbolTable* table) {
     return !(t->declared);
   }
   else if(type=="new_expr") {
-    return left->newExprCheck();
+    return left->newExprCheck(table);
   }
   else if(type=="decrement") {
     t=left->evalExpResult(table);
@@ -547,17 +565,17 @@ bool Node::typeCheckExp(SymbolTable* table) {
     return left->typeCheckExp(table);
   }
   else if((right)&&(left)) {
-    if(left->typCheck())
+    if(left->typeCheck())
     t=left->evalExpResult(table);
     if(t->id!="int") {
       string str=left->getExpLine()+name+right->getExpLine();
-      printError("Invalid type for operator "+name, str)
+      printError("Invalid type for operator "+name, str);
       return true;
     }
     t=left->evalExpResult(table);
     if(t->id!="int") {
       string str=left->getExpLine()+name+right->getExpLine();
-      printError("Invalid type for operator "+name, str)
+      printError("Invalid type for operator "+name, str);
       return true;
     }
   }
@@ -567,7 +585,11 @@ bool Node::typeCheckExp(SymbolTable* table) {
 SymbolTable* Node::evalExpResult(SymbolTable* table) {
   SymbolTable* t;
   if(type=="name") {
-    return table->lookup(left->evalNameID(table));
+    t=table->lookup(left->evalNameID(table));
+    if(!t->declared) {
+      printError("unexpected type "+t->id, getExpLine());
+      return nullptr;
+    }
   }
   else if(type=="inttype") {
     return typeTable->lookup("int");
@@ -582,7 +604,7 @@ SymbolTable* Node::evalExpResult(SymbolTable* table) {
     if(left->getRight()) {
       t=left->evalNameTable(table);
       if(!(t)) {
-        return true;
+        return nullptr;
       }
     }
     else {
@@ -655,19 +677,20 @@ SymbolTable* Node::evalExpResult(SymbolTable* table) {
     printError("invalid type for operator "+name, str);
     return nullptr;
   }
+  return nullptr;
 }
-bool Node::newExprCheck() {
+bool Node::newExprCheck(SymbolTable* table) {
   string str="";
-  SymbolTable* t
+  SymbolTable* t;
   if(type=="new_obj") {
     str+=left->name;
     t=typeTable->lookup(str);
-    if(!(t)) {
+    if((!(t))|(!t->declared)) {
       str="new "+str+"("+right->getArglistLine()+")";
       printError("undeclared type", str);
       return true;
     }
-    name+="#const"+left->argListTypes();
+    name+="#const"+left->argListTypes(table);
     if(t->lookup(name)) {
       return false;
     }
@@ -682,7 +705,7 @@ bool Node::newExprCheck() {
   else if(type=="new_int_array") {
     Node* n=left;
     while(n) {
-      if(n->getLeft()->typeCheckExp()) {
+      if(n->getLeft()->typeCheckExp(table)) {
         return true;
       }
       if(n->getNext()) {
@@ -694,14 +717,14 @@ bool Node::newExprCheck() {
   else if(type=="new_obj_array_exp") {
     str+=left->name;
     t=typeTable->lookup(str);
-    if(!(t)) {
+    if((!(t))||(!t->declared)) {
       str="new "+str+right->getBracketexpsLine()+right->getMultibracketsLine();
       printError("undeclared type", str);
       return true;
     }
     Node* n=right;
     while(n) {
-      if(n->getLeft()->typeCheckExp()) {
+      if(n->getLeft()->typeCheckExp(table)) {
         return true;
       }
       if(n->getNext()) {
@@ -713,7 +736,7 @@ bool Node::newExprCheck() {
   else if(type=="new_int_array_exp_brackets") {
     Node* n=left;
     while(n) {
-      if(n->getLeft()->typeCheckExp()) {
+      if(n->getLeft()->typeCheckExp(table)) {
         return true;
       }
       if(n->getNext()) {
@@ -731,14 +754,14 @@ bool Node::newExprCheck() {
   else if(type=="new_obj_array_exp_brackets") {
     str+=left->name;
     t=typeTable->lookup(str);
-    if(!(t)) {
+    if((!(t))||(!t->declared)) {
       str="new "+str+mid->getBracketexpsLine()+right->getMultibracketsLine();
       printError("undeclared type", str);
       return true;
     }
     Node* n=mid;
     while(n) {
-      if(n->getLeft()->typeCheckExp()) {
+      if(n->getLeft()->typeCheckExp(table)) {
         return true;
       }
       if(n->getNext()) {
@@ -747,6 +770,7 @@ bool Node::newExprCheck() {
     }
     return false;
   }
+  return false;
 }
 string Node::evalNameID(SymbolTable* table) {
   if(type=="this") {
@@ -756,21 +780,25 @@ string Node::evalNameID(SymbolTable* table) {
     //this.obj.a
     SymbolTable* tmp=left->evalNameTable(table);
     if(!(tmp)) {
-      return true;
+      return "";
     }
     tmp=tmp->lookup(name);
     if(!tmp) {
       string str=tmp->id+"."+name;
       string str2="no known member"+name;
       printError(str2, str);
-      return true;
+      return "";
     }
     return tmp->id;
   }
   else if(type=="array_access") {
     return left->evalNameID(table);
   }
-  return table->lookup(name)->id;
+  SymbolTable* t=table->lookup(name);
+  if(!t->declared) {
+    printError("unexpected type "+t->id, getNameLine());
+  }
+  return t->id;
 }
 SymbolTable* Node::evalNameTable(SymbolTable* table) {
   if(type=="this") {
@@ -793,7 +821,11 @@ SymbolTable* Node::evalNameTable(SymbolTable* table) {
   else if(type=="array_access") {
     return left->evalNameTable(table);
   }
-  return table->lookup(name);
+  SymbolTable* t=table->lookup(name);
+  if(!t->declared) {
+    return nullptr;
+  }
+  return t;
 }
 string Node::argListTypes(SymbolTable* table) {
   string str="";
@@ -803,7 +835,7 @@ string Node::argListTypes(SymbolTable* table) {
   if(next) {
     str+="_";
     str+=left->evalExpResult(table)->id;
-    str+=next->argListTypes();
+    str+=next->argListTypes(table);
     return str;
   }
   return left->evalExpResult(table)->id;
@@ -828,7 +860,7 @@ string Node::getExpLine() {
   if(type=="name") {
     str+=left->getNameLine();
   }
-  else if(type=+"inttype") {
+  else if(type=="inttype") {
     str+=to_string(left->getInt());
   }
   else if(type=="null") {
@@ -863,7 +895,7 @@ string Node::getExpLine() {
     str+="!=";
     str+=right->getExpLine();
   }
-  else if(exp->type=="leq") {
+  else if(type=="leq") {
     str+=left->getExpLine();
     str+="<=";
     str+=right->getExpLine();
@@ -878,7 +910,7 @@ string Node::getExpLine() {
     str+="<";
     str+=right->getExpLine();
   }
-  else if(exp->type=="gt") {
+  else if(type=="gt") {
     str+=left->getExpLine();
     str+=">";
     str+=right->getExpLine();
@@ -896,7 +928,7 @@ string Node::getExpLine() {
   else if(type=="plus") {
     str+=left->getExpLine();
     str+="+";
-    str+=->getExpLine();
+    str+=right->getExpLine();
   }
   else if(type=="minus") {
     str+=left->getExpLine();
@@ -925,7 +957,7 @@ string Node::getExpLine() {
   }
   else {
     printError("Unknown error", str);
-    exp->error=true;
+    error=true;
   }
   return str;
 }
@@ -935,7 +967,7 @@ string Node::getArglistLine() {
     return str;
   }
   if(left) {
-    str+=left->getArgsListLine();
+    str+=left->getArglistLine();
   }
   else {
     str+=name;
@@ -975,16 +1007,21 @@ SymbolTable* Node::evalNewExpr() {
   else if(type=="new_int_array") {
     str="int";
   }
-  else if(expr->type=="new_obj_array_exp") {
+  else if(type=="new_obj_array_exp") {
     str=left->name;
   }
-  else if(expr->type=="new_int_array_exp_brackets") {
+  else if(type=="new_int_array_exp_brackets") {
     str="int";
   }
-  else if(expr->type=="new_obj_array_exp_brackets") {
+  else if(type=="new_obj_array_exp_brackets") {
     str=left->name;
   }
-  return typeTable->lookup(str);
+  SymbolTable* t=typeTable->lookup(str);
+  if(!t->declared) {
+    printError("unexpected type"+t->id, getNewexprLine());
+    return nullptr;
+  }
+  return nullptr;
 }
 string Node::getNewexprLine() {
   string str="";
@@ -999,16 +1036,16 @@ string Node::getNewexprLine() {
     str+="new int";
     str+=left->getBracketexpsLine();
   }
-  else if(expr->type=="new_obj_array_exp") {
+  else if(type=="new_obj_array_exp") {
     str+="new "+left->name;
     str+=right->getBracketexpsLine();
   }
-  else if(expr->type=="new_int_array_exp_brackets") {
+  else if(type=="new_int_array_exp_brackets") {
     str+="new int";
     str+=left->getBracketexpsLine();
     str+=right->getMultibracketsLine();
   }
-  else if(expr->type=="new_obj_array_exp_brackets") {
+  else if(type=="new_obj_array_exp_brackets") {
     str+="new ";
     str+=left->name;
     str+=mid->getBracketexpsLine();

@@ -52,8 +52,7 @@ class Node {
     bool error;
     void printError(string msg, string line);
     virtual bool typeCheck();
-    static bool constructor;
-    static int mainCount;
+    virtual bool typeCheckExp(SymbolTable* table);
 
   protected:
     int myline;
@@ -69,19 +68,24 @@ class Node {
     //yeah the virtual is kinda unnecessary (see comment in nodes.cpp)
     virtual bool typeCheckVars(Node* vars, SymbolTable* table);
     virtual bool typeCheckVar(Node* vars, SymbolTable* table);
+    virtual bool checkValidVarType(string str);
     virtual bool typeCheckConsts(Node* consts, SymbolTable* table);
     virtual string constLine(Node* f);
     virtual bool typeCheckMethods(Node* methods, SymbolTable* table);
-    virtual bool checkValidVarType(string str);
     virtual string methodLine(Node* f);
     virtual bool typeCheckBlock();
-    virtual bool typeCheckStmts(SymbolTable* table)
-    virtual bool typeCheckStmt(SymbolTable* table)
-    virtual bool typeCheckName(SymbolTable* table)
-    virtual bool typeCheckExp(SymbolTable* table)
+    virtual bool typeCheckStmts(SymbolTable* table);
+    virtual bool typeCheckStmt(SymbolTable* table);
+    virtual bool typeCheckName(SymbolTable* table);
+    SymbolTable* evalExpResult(SymbolTable* table);
+    bool newExprCheck(SymbolTable* table);
+    string evalNameID(SymbolTable* table);
+    SymbolTable* evalNameTable(SymbolTable* table);
+    string argListTypes(SymbolTable* table);
     string getNameLine();
     string getExpLine();
     string getArglistLine();
+    SymbolTable* evalNewExpr();
     string getNewexprLine();
     string getBracketexpsLine();
     string getMultibracketsLine();
