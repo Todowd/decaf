@@ -16,3 +16,44 @@
 1666240115 source:/media/sf_CC/Program3/nodes.cpp
 	"nodes.hpp"
 
+1670600521 source:d:\school\cosc4785 - compiler construction i\decaf\entry.cpp
+	<iostream>
+	"Entry.hpp"
+	"SymbolTable.hpp"
+
+1670600374 d:\school\cosc4785 - compiler construction i\decaf\entry.hpp
+	<string>
+
+1670395179 d:\school\cosc4785 - compiler construction i\decaf\symboltable.hpp
+	<unordered_map>
+	<vector>
+	<string>
+
+1670605062 source:d:\school\cosc4785 - compiler construction i\decaf\nodes.cpp
+	"nodes.hpp"
+	"SymbolTable.hpp"
+	"Type.hpp"
+	<iostream>
+	<string>
+
+1670573374 d:\school\cosc4785 - compiler construction i\decaf\nodes.hpp
+	<iostream>
+	<string>
+	"SymbolTable.hpp"
+
+1670560526 d:\school\cosc4785 - compiler construction i\decaf\type.hpp
+	<unordered_map>
+	<string>
+	"SymbolTable.hpp"
+
+1670600095 source:d:\school\cosc4785 - compiler construction i\decaf\symboltable.cpp
+	<iostream>
+	<vector>
+	"SymbolTable.hpp"
+	"Entry.hpp"
+	"Type.hpp"
+
+1670476686 source:d:\school\cosc4785 - compiler construction i\decaf\type.cpp
+	"Type.hpp"
+	<iostream>
+

@@ -1,0 +1,15 @@
+class a{
+  int b;
+  obj c;
+  a test;
+  a() {
+    int tmp;
+    tmp=new int;
+    if(new int) {}
+    //if(2%2) {}
+  }
+  int func(obj f, int j) {}
+}
+class obj {
+  a tmp;
+}

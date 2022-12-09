@@ -15,8 +15,9 @@ using std::vector;
 
 #include "SymbolTable.hpp"
 #include "Entry.hpp"
-//#include "Entry.hpp"
+#include "Type.hpp"
 
+extern Type* typeTable;
 extern SymbolTable* root;
 extern SymbolTable* upper;
 
@@ -61,6 +62,10 @@ SymbolTable* SymbolTable::lookup(string str) {
     unordered_map<string, Entry*>::const_iterator it2=vars.find(str);
     if(it2==vars.end()) {
       if(parent==nullptr) {
+        SymbolTable* t=typeTable->lookup(str);
+        if(t->declared) {
+          return t;
+        }
         return nullptr;
       }
       return parent->lookup(str);

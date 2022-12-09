@@ -17,6 +17,7 @@ using std::endl;
 Entry::Entry() {
   id="#";//because not valid id
   type=nullptr;
+  param=false;
 }
 
 Entry::Entry(string i, SymbolTable* t, int dim) {
@@ -34,6 +35,9 @@ string Entry::getName() {
 }
 
 void Entry::print(int n) {
+  if(param) {
+    return;
+  }
   in(n);
   int start=id.find("#", 0);
   cout<<id.substr(0, start)<<": ";

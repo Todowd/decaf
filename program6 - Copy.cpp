@@ -18,15 +18,12 @@ using std::ofstream;
 #include<string>
 using std::string;
 
-#include<FlexLexer.h>
-
 #include "nodes.hpp"
 #include "program6.tab.hpp"
 #include "SymbolTable.hpp"
 #include "Entry.hpp"
 #include "Type.hpp"
 
-yyFlexLexer scanner;
 Node *tree;
 int ind;
 SymbolTable* table;
@@ -67,12 +64,11 @@ int main() {
   mainCount=0;
   constructor=false;
   ind=0;
-  yyparse();
+  //yyparse();
   //tree->print(); //not needed after program4
   //cout<<endl;
   //cout<<endl;
   cout<<endl;
-  //ind=0;
   //typeTable->print(ind);
   if(tree) {
     bool errors=tree->typeCheck();

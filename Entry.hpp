@@ -27,6 +27,7 @@ class Entry {
     bool equals(Entry* e);
     void print(int n);
     string getName();
+    bool param;
   private:
     void printDims();
     void in(int n);
