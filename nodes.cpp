@@ -445,9 +445,25 @@ bool Node::typeCheckStmt(SymbolTable* table) {
   return err;
 }
 bool Node::typeCheckName(SymbolTable* table) {
-  err=false;
-  //set this->block=final result type
-  return err;
+  if(type=="dot") {
+    SymbolTable* t=left->evalNameTable(table);
+    if(!(t)) {
+      return true;
+    }
+    t=t->lookup(right->name);
+    if(!(t)) {
+      printError("no matching member "+right->name, this->getNameLine());
+      return true;
+    }
+  }
+  else if(name=="array_access") {
+    return !(table->lookup(left->name)->declared);
+  }
+  else if(name=="this") {
+    //a obj.this case is handled in parse, so "this" is always fine now
+    return false;
+  }
+  return !(table->lookup(name)->declared);
 }
 bool Node::typeCheckExp(SymbolTable* table) {
   err=false;
@@ -587,13 +603,58 @@ SymbolTable* Node::evalExpResult(SymbolTable* table) {
     if(!(t)) {
       return nullptr;
     }
-    if(t->id!="int") {
-      printError("invalid type for operator "+name, "")
+    if((t->id!="int")||(t->id=="void")) {
+      string str=name+left->getExpLine();
+      printError("invalid type for operator "+name, str);
       return nullptr;
     }
   }
-  //rest is operators, all return int
-  return typeTable->lookup("int");
+  if((type=="eq")||(type=="neq")) {
+    t=left->evalExpResult(table);
+    if(!(t)) {
+      return nullptr;
+    }
+    if(t->id=="void") {
+      string str=left->getExpLine()+name+right->getExpLine();
+      printError("invalid type void for operator "+name, str);
+      return nullptr;
+    }
+    SymbolTable* t2=left->evalExpResult(table);
+    if(!(t2)) {
+      return nullptr;
+    }
+    if(t2->id=="void") {
+      string str=left->getExpLine()+name+right->getExpLine();
+      printError("invalid type void for operator "+name, str);
+      return nullptr;
+    }
+    if(t2!=t) {
+      string str=left->getExpLine()+name+right->getExpLine();
+      printError("non comparable types", str);
+      return nullptr;
+    }
+    //arithmetic operators always return type int, even if compared types are objs
+    return typeTable->lookup("int");
+  }
+  //everything left is arithmetic operators
+  t=left->evalExpResult(table);
+  if(!(t)) {
+    return nullptr;
+  }
+  if((t->id!="int")||(t->id=="void")) {
+    string str=left->getExpLine()+name+right->getExpLine();
+    printError("invalid type"+t->id+" for operator "+name, str);
+    return nullptr;
+  }
+  t=left->evalExpResult(table);
+  if(!(t)) {
+    return nullptr;
+  }
+  if((t->id!="int")||(t->id=="void")) {
+    string str=left->getExpLine()+name+right->getExpLine();
+    printError("invalid type for operator "+name, str);
+    return nullptr;
+  }
 }
 bool Node::newExprCheck() {
   string str="";
