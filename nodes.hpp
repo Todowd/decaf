@@ -52,6 +52,8 @@ class Node {
     bool error;
     void printError(string msg, string line);
     virtual bool typeCheck();
+    static bool constructor;
+    static int mainCount;
 
   protected:
     int myline;
@@ -64,13 +66,25 @@ class Node {
     Node* mid;
     Node* last;
     bool err;
+    //yeah the virtual is kinda unnecessary (see comment in nodes.cpp)
     virtual bool typeCheckVars(Node* vars, SymbolTable* table);
     virtual bool typeCheckVar(Node* vars, SymbolTable* table);
     virtual bool typeCheckConsts(Node* consts, SymbolTable* table);
+    virtual string constLine(Node* f);
     virtual bool typeCheckMethods(Node* methods, SymbolTable* table);
     virtual bool checkValidVarType(string str);
-    virtual string constLine(Node* f);
     virtual string methodLine(Node* f);
+    virtual bool typeCheckBlock();
+    virtual bool typeCheckStmts(SymbolTable* table)
+    virtual bool typeCheckStmt(SymbolTable* table)
+    virtual bool typeCheckName(SymbolTable* table)
+    virtual bool typeCheckExp(SymbolTable* table)
+    string getNameLine();
+    string getExpLine();
+    string getArglistLine();
+    string getNewexprLine();
+    string getBracketexpsLine();
+    string getMultibracketsLine();
 };
 
 class NodeINT: public Node {

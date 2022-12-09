@@ -28,6 +28,8 @@ i(0), left(Left), right(Right), mid(Mid), last(Last) {
   err=false;
   name="";
   error=false;
+  constructor=false;
+  mainCount=0;
   reset();
 }
 Node::~Node() {
@@ -52,6 +54,15 @@ void Node::printError(string msg, string line) {
 	cerr<<"^"<<endl;
 	//cerr<<msg<<", line"<<myline<<": "<<line<<endl;
 }
+/*
+Could I have created several node types, instead of one function calling many
+others yes, yes I could have. But that would also require restructuring
+everything else this works. If I wasnt on such a time crunch, it wouldve been
+better to do it that way
+
+Im just trying to recognize that although this is the way I did it, its not
+the way I wouldve wanted to have done it.
+*/
 bool Node::typeCheck() {
   bool er=false;
   if(type=="program") {
@@ -104,8 +115,14 @@ bool Node::typeCheck() {
       n=n->getNext();
     } while(n);
   }
-  else if(type=="block") {
-
+  //constructor/method block with local vardecs and stmts
+  else if((type=="localvardecs_stmts")||(type=="localvardecs")||(type=="stmts")) {
+    //this as of in the keyword/operator is a block node
+    typeCheckBlock();
+    //create function that could be recursively called to type check
+    //first part of block is easy with vardecs (maybe?)
+    //then this is were all the exp and stmts start coming into play
+      //there will be many ifs/elses
   }
   return (error||er);
 }
@@ -159,10 +176,10 @@ bool Node::checkValidVarType(string str) {
 }
 bool Node::typeCheckConsts(Node* consts, SymbolTable* table) {
   bool err=consts->error;
+  constructor=true;
   //check the constructor name matches the class type
   string name=consts->name;
   Node* params=consts->getMid()->getLeft();
-cerr<<table->id<<name<<endl;
   if(name.substr(0, name.find("#", 0))!=table->id) {
     printError("unexpected method", constLine(consts));
   }
@@ -171,14 +188,10 @@ cerr<<table->id<<name<<endl;
   if(consts->getMid()->type!="empty") {
     err=(err||params->error||typeCheckVars(params, table));
   }
-  //constructor name does repeat, checked in parser
+  //constructor name doesnt repeat, checked in parser
   //check rest of constructor block
-
-  //THIS NEEDS TO BE FIXED!!!!
-  //NEEDS FIX
-
-  //consts->getRight()->block=table;//just incase it wasnt already
-  return err;//(err||consts->getRight()->typeCheck());
+  consts->getRight()->block=table;//just incase it wasnt already
+  return (err||consts->getRight()->typeCheck());
 }
 string Node::constLine(Node* f) {
   string name=f->getLeft()->name;
@@ -198,6 +211,7 @@ string Node::constLine(Node* f) {
 }
 bool Node::typeCheckMethods(Node* methods, SymbolTable* table) {
   bool err=false;
+  constructor=false;
   //check the return type exists
   Node* n=methods->getLeft();
   if(!typeTable->exists(n->type)) {
@@ -209,13 +223,29 @@ bool Node::typeCheckMethods(Node* methods, SymbolTable* table) {
   //we already know it exists, and wasnt doubled from parser
   //check params
   string name=methods->name;
+  if(name=="main") {
+    mainCount++;
+    if(mainCount>1) {
+      printError("main already declared", methodLine(methods));
+      return true;
+    }
+    else if(mainCount==1) {
+      if((n->type!="void")||(n->type!="int")) {
+        printError("invalid return type for main", methodLine(methods));
+        return true;
+      }
+    }
+  }
   Node* params=methods->getRight()->getLeft();
   table=table->lookup(name);
   //check params
   if(methods->getRight()->type!="empty") {
     err=(err||params->error||typeCheckVars(params, table));
   }
-  return err;
+  //method name doesnt repeat, checked in parser
+  //check rest of method block
+  methods->getLast()->block=table;//just incase it wasnt already
+  return (err||methods->getLast()->typeCheck());
 }
 string Node::methodLine(Node* f) {
   string name=f->getLeft()->type;
@@ -234,6 +264,653 @@ string Node::methodLine(Node* f) {
   name+=")";
   return name;
 }
+bool Node::typeCheckBlock() {
+  bool err=false;
+  if(type=="empty") {
+    return err;
+  }
+  if(type=="localvardecs_stmts")||(type=="localvardecs")) {
+    //left is a localvardec
+    err=typeCheckVars(left, block)
+    //if right exists its the stmts
+    if(right) {
+      left->
+      err=(err||left->typeCheckStmts(block));
+    }
+  }
+  else {
+    //left is an stmts
+    err=left->typeCheckStmts(block);
+  }
+  return err;
+}
+bool Node::typeCheckStmts(SymbolTable* table) {
+  bool err=false;
+  while(stmts) {
+    err=(err||stmt->typeCheckStmt(table));
+    stmts=stmts->getNext();
+  }
+  return err;
+}
+bool Node::typeCheckStmt(SymbolTable* table) {
+  bool err=false;
+  //no error with just a semi
+  if(type=="semi") {
+    return false;
+  }
+  else if(type=="assign") {
+    err=(err||left->typeCheckName(table));
+    err=(err||right->typeCheckExp(table));
+    string tmp=left->evalNameID(table);
+    if(tmp=="") {
+      return true;
+    }
+    SymbolTable* leftVal=left->table->lookup(tmp);
+    SymbolTable* rightVal=right->evalExpResult(table);
+    if(rightVal==nullptr) {
+      printError("invalid expression", right->getExpLine());
+      return true;
+    }
+    //if theyre of the same type then we should have the same SymbolTable's
+    if(leftVal!=rightVal) {
+      error=true;
+      string line=getNameLine(stmt->getLeft());
+      line+="=";
+      line+=getExpLine(stmt->getRight());
+      printError("Error mismatching types", line);
+      return true;
+    }
+    if((rightVal->id=="void")||(rightVal->id=="int")) {
+      string line=getNameLine(stmt->getLeft());
+      line+="=";
+      line+=getExpLine(stmt->getRight());
+      printError("invalid rvalue", line)
+      return true;
+    }
+    return false;
+  }
+  else if(type=="method_call") {
+    if(left->typeCheckName(table)) {
+      return true;
+    }
+    string str=left->evalNameID(table);
+    if(str=="") {
+      return true;
+    }
+    if(typeTable->exists(str)) {
+      str=left->getNameLine();
+      str+="("+right->getArglistLine()+")";
+      printError("unexpected constructor", );
+      return true;
+    }
+    str+="#"+right->argListTypes(table);
+    SymbolTable* tmp=table->lookup(str);
+    if(!(tmp)) {
+      str=left->getNameLine();
+      str+="("+right->getArglistLine()+")";
+      printError("no matching method call", str);
+      return true;
+    }
+    return false;
+  }
+  else if(type=="print") {
+    //just like semi, nothing this node can cause an error for
+    Node* n=left;
+    while(n) {
+      if(!n->typeCheckExp(table)) {
+        string str="print("+left->getArglistLine()+");";
+        printError("invalid expression in ", str);
+        return true;
+      }
+      SymbolTable* tmp=n->evalExpResult(table);
+      if(!(tmp)) {
+      printError("invalid expression", right->getExpLine());
+        return true;
+      }
+      if(tmp->id!="int") {
+        string str="print("+left->getArglistLine()+");";
+        printError("mismatching argument type", str);
+        return true;
+      }
+    }
+    return false;
+  }
+  else if(type=="cndtlstmt") {
+    if(left->name=="if") {
+      SymbolTable* tmp=left->evalExpResult(table);
+      if(!(tmp)) {
+        string str="if("+left->getExpLine()+")";
+        printError("invalid expression", str);
+      }
+      return right->typeCheckStmt(table);
+    }
+    SymbolTable* tmp=left->evalExpResult(table);
+    if(!(tmp)) {
+      string str="if("+left->getExpLine()+")";
+      printError("invalid expression", str);
+    }
+    if(mid->typeCheckStmt(table)) {
+      return true;
+    }
+    return right->typeCheckStmt(table);
+  }
+  else if(type=="while") {
+    //not worried about the result or type, just as long as it doesnt throw any
+    //error, we can give it whatever exp. which makes sense from a c++ sense
+    //anything thats not zero is true, but java must use booleans, and decaf
+    //doesnt have any so Im just rolling with this for now
+    SymbolTable* tmp=left->evalExpResult();
+    if(!(tmp)) {
+      string str="while("+left->getExpLine()+")";
+      printError("invalid expression", str);
+      return true;
+    }
+    if(right->typeCheckStmt(table)) {
+      return true;
+    }
+    return false;
+  }
+  else if(type=="return") {
+    if(constructor) {
+      string str="return";
+      if(left->type!="empty") {
+        str+=left->getExpLine();
+      }
+      str+=";";
+      printError("unexpected return statement", str);
+      return true;
+    }
+    //check if void type, and returns nothing;
+    if((left->name=="empty")&&(table->returnType->id=="void")) {
+      return false;
+    }
+    else if(left->name!="empty") {
+      SymbolTable* tmp=left->left->evalExpResult(table);
+      //failed to find result of exp
+      if(!(tmp)) {
+        printError("invalid expression", left->left->getExpLine());
+        return true;
+      }
+      if(table->returnType->id==tmp->id) {
+        return (false||err);
+      }
+    }
+    error=true;
+    return true;
+  }
+  else if(type=="block") {
+    left->block=table->lookup(name);//just incase it wasnt already
+    return left->typeCheck();
+  }
+  return err;
+}
+bool typeCheckName(SymbolTable* table) {
+  err=false;
+  //set this->block=final result type
+  return err;
+}
+bool typeCheckExp(SymbolTable* table) {
+  err=false;
+  return err;
+}
+SymbolTable* Node::evalExpResult(SymbolTable* table) {
+  if(type=="name") {
+    return table->lookup(left->evalNameID(table));
+  }
+  else if(type=="inttype") {
+    return typeTable->lookup("int");
+  }
+  else if(type=="null") {
+    return typeTable->lookup("null");
+  }
+  else if(type=="read") {
+    return typeTable->lookup("int");
+  }
+  else if(type=="function_call") {
+    //has some sort of "." or "[<exp>]"
+    SymbolTable* t;
+    if(left->getRight()) {
+      t=left->evalNameTable(table);
+      if(!(t)) {
+        return true;
+      }
+    }
+    else {
+      t=table;
+    }
+    string tmp=left->name+"#method";
+    tmp+=right->argListTypes(table);
+    t=t->lookup(tmp);
+    if(t) {
+      return false;
+    }
+    return true;
+  }
+  else if(type=="new_expr") {
+    return left->newExprCheck();
+  }
+  else if(type=="decrement") {
+    return "-"+left->getExpLine();
+  }
+  else if(type=="increment") {
+
+    return "+"+left->getExpLine();
+  }
+  else if(type=="not") {
+    return "!"+left->getExpLine();
+  }
+  else if(type=="eq") {
+    return left->getExpLine();
+    return "==";
+    return right->getExpLine();
+  }
+  else if(type=="neq") {
+    return left->getExpLine();
+    return "!=";
+    return right->getExpLine();
+  }
+  else if(exp->type=="leq") {
+    return left->getExpLine();
+    return "<=";
+    return right->getExpLine();
+  }
+  else if(type=="geq") {
+    return left->getExpLine();
+    return ">=";
+    return right->getExpLine();
+  }
+  else if(type=="lt") {
+    return left->getExpLine();
+    return "<";
+    return right->getExpLine();
+  }
+  else if(exp->type=="gt") {
+    return left->getExpLine();
+    return ">";
+    return right->getExpLine();
+  }
+  else if(type=="and") {
+    return left->getExpLine();
+    return "&&";
+    return right->getExpLine();
+  }
+  else if(type=="or") {
+    return left->getExpLine();
+    return "||";
+    return right->getExpLine();
+  }
+  else if(type=="plus") {
+    return left->getExpLine();
+    return "+";
+    return ->getExpLine();
+  }
+  else if(type=="minus") {
+    return left->getExpLine();
+    return "-";
+    return right->getExpLine();
+  }
+  else if(type=="times") {
+    return left->getExpLine();
+    return "*";
+    return right->getExpLine();
+  }
+  else if(type=="div") {
+    return left->getExpLine();
+    return "/";
+    return right->getExpLine();
+  }
+  else if(type=="mod") {
+    return left->getExpLine();
+    return "%";
+    return right->getExpLine();
+  }
+  else if(type=="enclosed_exp") {
+    return "(";
+    return left->getExpLine();
+    return ")";
+  }
+  else {
+    printError("Unknown error", str);
+    exp->error=true;
+  }
+}
+bool Node::newExprCheck() {
+  string str="";
+  SymbolTable* t
+  if(type=="new_obj") {
+    str+=left->name;
+    t=typeTable->lookup(str);
+    if(!(t)) {
+      str="new "+str+"("+right->getArglistLine()+")";
+      printError("undeclared type", str);
+      return true;
+    }
+    name+="#const"+left->argListTypes();
+    if(t->lookup(name)) {
+      return false;
+    }
+    str="new"+str+"("+right->getArglistLine()+")";
+    printError("no constructor matching", str);
+    return true;
+  }
+  else if(type=="new_int") {
+    //a "new int" is always possible
+    return false;
+  }
+  else if(type=="new_int_array") {
+    Node* n=left;
+    while(n) {
+      if(n->getLeft()->typeCheckExp()) {
+        return true;
+      }
+      if(n->getNext()) {
+        n=n->getNext();
+      }
+    }
+    return false;
+  }
+  else if(type=="new_obj_array_exp") {
+    str+=left->name;
+    t=typeTable->lookup(str);
+    if(!(t)) {
+      str="new "+str+right->getBracketexpsLine()+right->getMultibracketsLine();
+      printError("undeclared type", str);
+      return true;
+    }
+    Node* n=right;
+    while(n) {
+      if(n->getLeft()->typeCheckExp()) {
+        return true;
+      }
+      if(n->getNext()) {
+        n=n->getNext();
+      }
+    }
+    return false;
+  }
+  else if(type=="new_int_array_exp_brackets") {
+    Node* n=left;
+    while(n) {
+      if(n->getLeft()->typeCheckExp()) {
+        return true;
+      }
+      if(n->getNext()) {
+        n=n->getNext();
+      }
+    }
+    //there is no type checking for quantity of dimensions, and I could have
+    //added arrays to the typetable, but seemed unnecessary at the time
+    //when I made it because I thought it wouldnt have worked this way
+    //and Im worried I wont be able to implement in this particular fashion
+    //but was leading to using a 'when trying to acces said array, does it
+    //have x amount of dims? okay or not okay'
+    return false;
+  }
+  else if(type=="new_obj_array_exp_brackets") {
+    str+=left->name;
+    t=typeTable->lookup(str);
+    if(!(t)) {
+      str="new "+str+mid->getBracketexpsLine()+right->getMultibracketsLine();
+      printError("undeclared type", str);
+      return true;
+    }
+    Node* n=mid;
+    while(n) {
+      if(n->getLeft()->typeCheckExp()) {
+        return true;
+      }
+      if(n->getNext()) {
+        n=n->getNext();
+      }
+    }
+    return false;
+  }
+}
+string Node::evalNameID(SymbolTable* table) {
+  if(type=="this") {
+    return table->id;
+  }
+  else if(type=="dot") {
+    //this.obj.a
+    SymbolTable* tmp=left->evalNameTable(table);
+    if(!(tmp)) {
+      return true;
+    }
+    tmp=tmp->lookup(name);
+    if(!tmp) {
+      string str=tmp->id+"."+name;
+      string str2="no known member"+name;
+      printError(str2, str);
+      return true;
+    }
+    return tmp->id;
+  }
+  else if(type=="array_access") {
+    return left->evalNameID(table);
+  }
+  return table->lookup(name)->id;
+}
+SymbolTable* Node::evalNameTable(SymbolTable* table) {
+  if(type=="this") {
+    return table;
+  }
+  else if(type=="dot") {
+    //this.obj.a
+    SymbolTable* t=left->evalNameTable(table);
+    if(!(t)) {
+      return nullptr;
+    }
+    t=t->lookup(name);
+    if(!(t)) {
+      string str=t->id+"."+name;
+      string str2="no known member"+name;
+      printError(str2, str);
+      return nullptr;
+    }
+  }
+  else if(type=="array_access") {
+    return left->evalNameTable(table);
+  }
+  return table->lookup(name);
+}
+string Node::argListTypes(SymbolTable* table) {
+  string str="";
+  if(type=="empty") {
+    return str;
+  }
+  if(next) {
+    str+="_";
+    str+=left->evalExpResult(table)->id;
+    str+=next->argListTypes();
+    return str;
+  }
+  return left->evalExpResult(table)->id;
+}
+string Node::getNameLine() {
+  string str="";
+  if(type=="dot") {
+    str+=left->getNameLine();
+    str+="."+right->name;
+  }
+  else if(type=="array_access") {
+    str+=left->getNameLine();
+    str+="["+right->getExpLine()+"]";
+  }
+  else {
+    str+=name;
+  }
+  return str;
+}
+string Node::getExpLine() {
+  string str="";
+  if(type=="name") {
+    str+=left->getNameLine();
+  }
+  else if(type=+"inttype") {
+    str+=to_string(left->getInt());
+  }
+  else if(type=="null") {
+    str+="null";
+  }
+  else if(type=="read") {
+    str+="read()";
+  }
+  else if(type=="function_call") {
+    str+=left->getNameLine();
+    str+="("+right->getArglistLine()+")";
+  }
+  else if(type=="new_expr") {
+    str+=left->getNewexprLine();
+  }
+  else if(type=="decrement") {
+    str+="-"+left->getExpLine();
+  }
+  else if(type=="increment") {
+    str+="+"+left->getExpLine();
+  }
+  else if(type=="not") {
+    str+="!"+left->getExpLine();
+  }
+  else if(type=="eq") {
+    str+=left->getExpLine();
+    str+="==";
+    str+=right->getExpLine();
+  }
+  else if(type=="neq") {
+    str+=left->getExpLine();
+    str+="!=";
+    str+=right->getExpLine();
+  }
+  else if(exp->type=="leq") {
+    str+=left->getExpLine();
+    str+="<=";
+    str+=right->getExpLine();
+  }
+  else if(type=="geq") {
+    str+=left->getExpLine();
+    str+=">=";
+    str+=right->getExpLine();
+  }
+  else if(type=="lt") {
+    str+=left->getExpLine();
+    str+="<";
+    str+=right->getExpLine();
+  }
+  else if(exp->type=="gt") {
+    str+=left->getExpLine();
+    str+=">";
+    str+=right->getExpLine();
+  }
+  else if(type=="and") {
+    str+=left->getExpLine();
+    str+="&&";
+    str+=right->getExpLine();
+  }
+  else if(type=="or") {
+    str+=left->getExpLine();
+    str+="||";
+    str+=right->getExpLine();
+  }
+  else if(type=="plus") {
+    str+=left->getExpLine();
+    str+="+";
+    str+=->getExpLine();
+  }
+  else if(type=="minus") {
+    str+=left->getExpLine();
+    str+="-";
+    str+=right->getExpLine();
+  }
+  else if(type=="times") {
+    str+=left->getExpLine();
+    str+="*";
+    str+=right->getExpLine();
+  }
+  else if(type=="div") {
+    str+=left->getExpLine();
+    str+="/";
+    str+=right->getExpLine();
+  }
+  else if(type=="mod") {
+    str+=left->getExpLine();
+    str+="%";
+    str+=right->getExpLine();
+  }
+  else if(type=="enclosed_exp") {
+    str+="(";
+    str+=left->getExpLine();
+    str+=")";
+  }
+  else {
+    printError("Unknown error", str);
+    exp->error=true;
+  }
+  return str;
+}
+string Node::getArglistLine() {
+  str="";
+  if(type=="empty") {
+    return str;
+  }
+  if(left) {
+    str+=left->getArgsListLine();
+  }
+  else {
+    str+=name;
+    if(next) {
+      str+=", "+next->getArglistLine();
+    }
+  }
+  return str;
+}
+string Node::getNewexprLine() {
+  string str="";
+  if(type=="new_obj") {
+    str+="new "+left->name+"(";
+    str+=right->getArglistLine()+")";
+  }
+  else if(type=="new_int") {
+    str+="new int";
+  }
+  else if(type=="new_int_array") {
+    str+="new int";
+    str+=left->getBracketexpsLine();
+  }
+  else if(expr->type=="new_obj_array_exp") {
+    str+="new "+left->name;
+    str+=right->getBracketexpsLine();
+  }
+  else if(expr->type=="new_int_array_exp_brackets") {
+    str+="new int";
+    str+=left->getBracketexpsLine();
+    str+=right->getMultibracketsLine();
+  }
+  else if(expr->type=="new_obj_array_exp_brackets") {
+    str+="new ";
+    str+=left->name;
+    str+=mid->getBracketexpsLine();
+    str+=right->getMultibracketsLine();
+
+  }
+  return str;
+}
+string Node::getBracketexpsLine() {
+  string str="[";
+  str+=left->getExpLine();
+  str+="]";
+  if(next) {
+    str+=next->getBracketexpsLine();
+  }
+  return str;
+}
+string Node::getMultibracketsLine() {
+  string str="[]";
+  if(next) {
+    str+=next->getMultibracketsLine();
+  }
+  return str;
+}
+
 int Node::getInt() const {
   return i;
 }
