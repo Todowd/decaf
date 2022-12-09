@@ -178,15 +178,3 @@ void SymbolTable::in(int n) {
     cout<<"  ";
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-

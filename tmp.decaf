@@ -1,3 +1,6 @@
+//make && ./program6 < tmp.decaf
+
+
 class a{
   int b;
   obj c;
@@ -5,7 +8,7 @@ class a{
   a() {
     int tmp;
     tmp=new int;
-    if(new int) {}
+    if(this.c.tmp.c.tmp.b) {}
     //if(2%2) {}
   }
   int func(obj f, int j) {}

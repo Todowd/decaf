@@ -2,7 +2,7 @@
 nodes.cpp
 COSC4785
 Tyler O'Dowd
-12/5/22
+12/9/22
 
 Nodes that make up the syntax tree
 */
@@ -814,8 +814,8 @@ string Node::evalNameID(SymbolTable* table) {
       return "";
     }
     tmp=tmp->lookup(name);
-    if(!tmp) {
-      string str=tmp->id+"."+name;
+    if(!(tmp)) {
+      string str=name;
       string str2="no known member"+name;
       printError(str2, str);
       return "";
@@ -846,13 +846,21 @@ SymbolTable* Node::evalNameTable(SymbolTable* table) {
     if(!(t)) {
       return nullptr;
     }
-    t=t->lookup(name);
-    if(!(t)) {
-      string str=t->id+"."+name;
-      string str2="no known member"+name;
-      printError(str2, str);
+    if(!t->declared) {
+      printError("undeclared type", t->id);
       return nullptr;
     }
+    t=t->lookup(name);
+    if(!(t)) {
+      string str2="no known member"+name;
+      printError(str2, getNameLine());
+      return nullptr;
+    }
+    if(!t->declared) {
+      printError("undeclared type", t->id);
+      return nullptr;
+    }
+    return t;
   }
   else if(type=="array_access") {
     return left->evalNameTable(table);
