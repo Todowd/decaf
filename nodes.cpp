@@ -444,16 +444,112 @@ bool Node::typeCheckStmt(SymbolTable* table) {
   }
   return err;
 }
-bool typeCheckName(SymbolTable* table) {
+bool Node::typeCheckName(SymbolTable* table) {
   err=false;
   //set this->block=final result type
   return err;
 }
-bool typeCheckExp(SymbolTable* table) {
+bool Node::typeCheckExp(SymbolTable* table) {
   err=false;
-  return err;
+  SymbolTable* t;
+  if(type=="name") {
+    return left->typeCheckName(table);
+  }
+  else if(type=="function_call") {
+    if(left->getRight()) {
+      t=left->evalNameTable(table);
+      if(!(t)) {
+        return true;
+      }
+    }
+    else {
+      t=table;
+    }
+    string tmp=left->name+"#method";
+    tmp+=right->argListTypes(table);
+    t=t->lookup(tmp);
+    return !(t->declared);
+  }
+  else if(type=="new_expr") {
+    return left->newExprCheck();
+  }
+  else if(type=="decrement") {
+    t=left->evalExpResult(table);
+    if(!(t)) {
+      return true;
+    }
+    return (t->id!="int");
+  }
+  else if(type=="increment") {
+    t=left->evalExpResult(table);
+    if(!(t)) {
+      return true;
+    }
+    return (t->id!="int");
+  }
+  else if(type=="not") {
+    t=left->evalExpResult(table);
+    if(!(t)) {
+      return true;
+    }
+    return (t->id!="int");
+  }
+  else if((type=="eq")||(type=="neq")) {
+    string type1="";
+    string type2="_";
+    t=left->evalExpResult(table);
+    if(!(t)) {
+      return true;
+    }
+    type1=t->id;
+    if(type1=="void") {
+      string str=left->getExpLine()+name+right->getExpLine();
+      printError("non comparable types, void", name);
+      return true;
+    }
+    t=right->evalExpResult(table);
+    if(!(t)) {
+      return true;
+    }
+    type2=t->id;
+    if(type2=="void") {
+      string str=left->getExpLine()+name+right->getExpLine();
+      printError("non comparable types, void", name);
+      return true;
+    }
+    if((type1=="null")||(type2=="null")) {
+      if((type1!="int")&&(type2!="int")) {
+        return false;
+      }
+      string str=left->getExpLine()+name+right->getExpLine();
+      printError("non comparable types", name);
+      return true;
+    }
+    return (type1!=type2);
+  }
+  else if(type=="enclosed_exp") {
+    return left->typeCheckExp(table);
+  }
+  else if((right)&&(left)) {
+    if(left->typCheck())
+    t=left->evalExpResult(table);
+    if(t->id!="int") {
+      string str=left->getExpLine()+name+right->getExpLine();
+      printError("Invalid type for operator "+name, str)
+      return true;
+    }
+    t=left->evalExpResult(table);
+    if(t->id!="int") {
+      string str=left->getExpLine()+name+right->getExpLine();
+      printError("Invalid type for operator "+name, str)
+      return true;
+    }
+  }
+  //rest are things that themselves cannot be type checked, ie inttype
+  return false;
 }
 SymbolTable* Node::evalExpResult(SymbolTable* table) {
+  SymbolTable* t;
   if(type=="name") {
     return table->lookup(left->evalNameID(table));
   }
@@ -467,8 +563,6 @@ SymbolTable* Node::evalExpResult(SymbolTable* table) {
     return typeTable->lookup("int");
   }
   else if(type=="function_call") {
-    //has some sort of "." or "[<exp>]"
-    SymbolTable* t;
     if(left->getRight()) {
       t=left->evalNameTable(table);
       if(!(t)) {
@@ -481,98 +575,25 @@ SymbolTable* Node::evalExpResult(SymbolTable* table) {
     string tmp=left->name+"#method";
     tmp+=right->argListTypes(table);
     t=t->lookup(tmp);
-    if(t) {
-      return false;
-    }
-    return true;
   }
   else if(type=="new_expr") {
-    return left->newExprCheck();
-  }
-  else if(type=="decrement") {
-    return "-"+left->getExpLine();
-  }
-  else if(type=="increment") {
-
-    return "+"+left->getExpLine();
-  }
-  else if(type=="not") {
-    return "!"+left->getExpLine();
-  }
-  else if(type=="eq") {
-    return left->getExpLine();
-    return "==";
-    return right->getExpLine();
-  }
-  else if(type=="neq") {
-    return left->getExpLine();
-    return "!=";
-    return right->getExpLine();
-  }
-  else if(exp->type=="leq") {
-    return left->getExpLine();
-    return "<=";
-    return right->getExpLine();
-  }
-  else if(type=="geq") {
-    return left->getExpLine();
-    return ">=";
-    return right->getExpLine();
-  }
-  else if(type=="lt") {
-    return left->getExpLine();
-    return "<";
-    return right->getExpLine();
-  }
-  else if(exp->type=="gt") {
-    return left->getExpLine();
-    return ">";
-    return right->getExpLine();
-  }
-  else if(type=="and") {
-    return left->getExpLine();
-    return "&&";
-    return right->getExpLine();
-  }
-  else if(type=="or") {
-    return left->getExpLine();
-    return "||";
-    return right->getExpLine();
-  }
-  else if(type=="plus") {
-    return left->getExpLine();
-    return "+";
-    return ->getExpLine();
-  }
-  else if(type=="minus") {
-    return left->getExpLine();
-    return "-";
-    return right->getExpLine();
-  }
-  else if(type=="times") {
-    return left->getExpLine();
-    return "*";
-    return right->getExpLine();
-  }
-  else if(type=="div") {
-    return left->getExpLine();
-    return "/";
-    return right->getExpLine();
-  }
-  else if(type=="mod") {
-    return left->getExpLine();
-    return "%";
-    return right->getExpLine();
+    return left->evalNewExpr();
   }
   else if(type=="enclosed_exp") {
-    return "(";
-    return left->getExpLine();
-    return ")";
+    return left->evalExpResult(table);
   }
-  else {
-    printError("Unknown error", str);
-    exp->error=true;
+  if(!(right)) {
+    t=left->evalExpResult(table);
+    if(!(t)) {
+      return nullptr;
+    }
+    if(t->id!="int") {
+      printError("invalid type for operator "+name, "")
+      return nullptr;
+    }
   }
+  //rest is operators, all return int
+  return typeTable->lookup("int");
 }
 bool Node::newExprCheck() {
   string str="";
@@ -862,6 +883,47 @@ string Node::getArglistLine() {
     }
   }
   return str;
+}
+SymbolTable* Node::evalNewExpr() {
+  string str="";
+  /*
+  if(type=="new_obj") {
+    str=left->name;
+  }
+  else if(type=="new_int") {
+    str="int";
+  }
+  else if(type=="new_int_array") {
+    str="int"+right->getMultibracketsLine();
+  }
+  else if(expr->type=="new_obj_array_exp") {
+    str=left->name+right->getMultibracketsLine();
+  }
+  else if(expr->type=="new_int_array_exp_brackets") {
+    str="int"+left->getMultibracketsLine()+right->getMultibracketsLine();
+  }
+  else if(expr->type=="new_obj_array_exp_brackets") {
+    str=left->name+left->getMultibracketsLine()+right->getMultibracketsLine();
+  }*/
+  if(type=="new_obj") {
+    str=left->name;
+  }
+  else if(type=="new_int") {
+    str="int";
+  }
+  else if(type=="new_int_array") {
+    str="int";
+  }
+  else if(expr->type=="new_obj_array_exp") {
+    str=left->name;
+  }
+  else if(expr->type=="new_int_array_exp_brackets") {
+    str="int";
+  }
+  else if(expr->type=="new_obj_array_exp_brackets") {
+    str=left->name;
+  }
+  return typeTable->lookup(str);
 }
 string Node::getNewexprLine() {
   string str="";
